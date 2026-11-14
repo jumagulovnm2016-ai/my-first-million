@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мой первый миллион</title>
+<style>
+:root{--bg:#FFF7E8;--card:#fff;--ink:#26283B;--mut:#7B7F98;--red:#E63946;--teal:#1F9E8F;--sun:#FFB703;--org:#F4842B;--line:#F1E3C8;--blue:#3A6EA5;--sh:0 4px 16px rgba(38,40,59,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);min-height:100vh;-webkit-tap-highlight-color:transparent;font-size:16px;line-height:1.4}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:14px 14px 104px}
+h1{font-size:28px;line-height:1.15}
+h2{font-size:21px;margin:4px 0 10px}
+h3{font-size:17px}
+small{color:var(--mut)}
+.sec{margin:20px 4px 10px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.card{background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--sh);margin-bottom:14px}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.wrapf{flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(min-width:620px){.grid2.m3{grid-template-columns:repeat(3,1fr)}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:14px;font-weight:700;background:var(--teal);color:#fff;transition:transform .08s}
+.btn:active{transform:scale(.97)}
+.btn.sm{padding:8px 12px;font-size:14px;border-radius:11px}
+.btn.red{background:var(--red)}
+.btn.sun{background:var(--sun);color:#3b2a00}
+.btn.org{background:var(--org)}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+.btn.wide{width:100%}
+.btn[disabled],.btn.dis{opacity:.45;pointer-events:none}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:#FFF1D6;color:#9A5B00}
+.tag.need{background:#DDF3EF;color:#0F6B60}.tag.want{background:#FFE3E5;color:#B42332}.tag.gift{background:#EDE6FF;color:#5B3DB5}.tag.grow{background:#E1ECFA;color:#2C5A8C}
+.mut{color:var(--mut)}
+.pos{color:var(--teal);font-weight:700}.neg{color:var(--red);font-weight:700}
+.bar{height:10px;background:#F3EAD8;border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--sun),var(--org));border-radius:99px}
+.bar.teal>i{background:linear-gradient(90deg,#41C6B5,var(--teal))}
+.bar.mood>i{background:linear-gradient(90deg,#FF8FA3,#FFB703,#41C6B5)}
+/* hero */
+.hero{text-align:center;padding:26px 10px 8px}
+.logo{font-size:64px;line-height:1;animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.hero p{color:var(--mut);margin-top:8px}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.pcard{background:#fff;border-radius:20px;padding:16px 10px;box-shadow:var(--sh);display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.pcard .av{font-size:44px}
+.pcard.add{background:#FFF1D6}
+.avs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:10px 0 16px}
+.avs button{font-size:30px;padding:8px 0;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 2px var(--line)}
+.avs button.on{box-shadow:inset 0 0 0 3px var(--teal);background:#E8F7F4}
+.inp{width:100%;padding:13px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
+.inp:focus{border-color:var(--teal)}
+/* top */
+.top{background:linear-gradient(135deg,#E63946 0%,#F4842B 55%,#FFB703 100%);color:#fff;border-radius:24px;padding:16px;box-shadow:var(--sh);margin-bottom:14px;position:relative;overflow:hidden}
+.top:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;border:16px solid rgba(255,255,255,.18)}
+.top .av{font-size:42px;background:rgba(255,255,255,.25);width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center}
+.top small{color:rgba(255,255,255,.9)}
+.cap{font-size:32px;font-weight:800;margin:10px 0 2px;letter-spacing:-.01em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:rgba(255,255,255,.22);padding:5px 10px;border-radius:99px;font-size:13px;font-weight:600}
+.top .bar{background:rgba(255,255,255,.3)}.top .bar>i{background:#fff}
+.goalm{margin-top:12px;font-size:13px}
+/* event */
+.evh{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.big{font-size:42px}
+.chs{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.ch{text-align:left;padding:13px 14px;border-radius:14px;background:#FFF7E8;box-shadow:inset 0 0 0 2px var(--line);font-weight:600}
+.ch:active{background:#FFEBC4}
+.ch.dis{opacity:.45}
+.lesson{margin-top:10px;padding:12px 14px;border-radius:14px;background:#FFF1D6;font-size:15px}
+.lesson.good{background:#DDF3EF}.lesson.bad{background:#FFE3E5}
+.verdict{font-weight:800;margin-top:8px}
+.ok{color:var(--teal)}.no{color:var(--red)}
+.qopt{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:14px;margin-top:8px;background:#F4F7FB;box-shadow:inset 0 0 0 2px #E2E9F3;font-weight:600}
+.qopt.right{background:#DDF3EF;box-shadow:inset 0 0 0 2px var(--teal)}
+.qopt.wrong{background:#FFE3E5;box-shadow:inset 0 0 0 2px var(--red)}
+.checks{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.check{flex:1;min-width:96px;background:#fff;border-radius:14px;padding:10px;text-align:center;box-shadow:var(--sh);font-size:13px}
+.check b{display:block;font-size:20px}
+.endw{font-size:18px;padding:16px;border-radius:18px;background:linear-gradient(135deg,#1F9E8F,#3A6EA5)}
+/* items */
+.item{background:#fff;border-radius:18px;padding:12px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:6px}
+.item .e{font-size:36px}
+.item .pr{font-weight:800;font-size:17px}
+.old{text-decoration:line-through;color:var(--mut);font-weight:400;font-size:13px;margin-left:4px}
+.sale{background:var(--red);color:#fff;font-weight:800;font-size:12px;padding:3px 8px;border-radius:99px}
+.chore{background:#fff;border-radius:18px;padding:12px;box-shadow:var(--sh);text-align:left;display:flex;gap:10px;align-items:center}
+.chore .e{font-size:30px}
+.chore.done{opacity:.5;background:#EFF7F5}
+.chore b{display:block}
+.banner{background:linear-gradient(135deg,#FFE3E5,#FFF1D6);border-radius:18px;padding:14px;margin-bottom:14px}
+.info{background:#E1ECFA;border-radius:16px;padding:12px 14px;font-size:14px;margin-bottom:12px;color:#22476F}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{padding:8px 13px;border-radius:99px;background:#fff;box-shadow:inset 0 0 0 2px var(--line);font-weight:700;font-size:14px}
+.seg button.on{background:var(--teal);color:#fff;box-shadow:none}
+.lock{opacity:.55}
+/* ach */
+.ach{background:#fff;border-radius:16px;padding:10px 6px;text-align:center;box-shadow:var(--sh);font-size:12px}
+.ach .e{font-size:32px;display:block}
+.ach b{display:block;font-size:13px;margin:2px 0}
+.ach.off{filter:grayscale(1);opacity:.4}
+.logl{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.stat{background:#FFF7E8;border-radius:14px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat small{font-size:12px}
+/* nav */
+.nav{position:fixed;left:0;right:0;bottom:0;background:#fff;box-shadow:0 -4px 20px rgba(0,0,0,.08);display:flex;justify-content:center;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:20}
+.nav .in{display:flex;max-width:760px;width:100%;justify-content:space-between}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:700;color:var(--mut);padding:4px 0;border-radius:12px;position:relative;min-width:0}
+.nav button span{font-size:22px;line-height:1.2}
+.nav button.on{color:var(--red);background:#FFF1D6}
+.dot{position:absolute;top:2px;right:calc(50% - 18px);width:9px;height:9px;border-radius:50%;background:var(--red)}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(38,40,59,.5);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+@media(min-width:620px){.ov{align-items:center;padding:20px}}
+.md{background:#fff;width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .22s ease-out}
+@media(min-width:620px){.md{border-radius:24px}}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.md h2{margin-top:0}
+.rl{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:16px;z-index:80;font-weight:600;box-shadow:var(--sh);max-width:92vw;text-align:center;animation:up .2s}
+.celebrate{text-align:center}
+.celebrate .e{font-size:72px;display:block;animation:bob 1.5s infinite}
+.pin{letter-spacing:.5em;text-align:center;font-size:26px}
+textarea.inp{min-height:90px;font-size:12px;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+.pk{border-left:5px solid var(--teal)}
+.spark{width:100%;height:60px;display:block;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="nav"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<script>
+/* =================== ДАННЫЕ ИГРЫ =================== */
+const START_CASH = 1000;
+const AVATARS = ['🦊','🐻','🐼','🦁','🐯','🐨','🐸','🦄','🐎','🦅','🐱','🐶'];
+
+const LEVELS = [
+  [0,'Новичок','🐣'],[80,'Копилочка','🐷'],[200,'Бережливый','🌱'],[400,'Экономист','📊'],
+  [700,'Предприниматель','🛠'],[1100,'Бизнесмен','💼'],[1700,'Инвестор','📈'],
+  [2500,'Финансист','🏦'],[3500,'Магнат','🏆'],[5000,'Миллионер','👑']
+];
+
+const CHORES = [
+  ['dish','🍽','Помыть посуду',35],
+  ['room','🧹','Убрать свою комнату',40],
+  ['boor','🫓','Помочь маме испечь боорсоки',60],
+  ['bags','🛍','Помочь соседке-эжеке донести сумки',45],
+  ['garden','🌱','Полить огород',55],
+  ['dog','🐕','Выгулять собаку',40],
+  ['study','📖','Помочь младшему с уроками',50],
+  ['car','🚗','Помыть машину вместе с папой',70]
+];
+const MAX_CHORES = 3;
+
+const SHOP = [
+  ['ice','🍦','Мороженое',60,'want',5,0],
+  ['samsa','🥟','Самса',50,'want',4,0],
+  ['book','📚','Интересная книга',450,'grow',6,15],
+  ['flowers','💐','Цветы маме',600,'gift',12,5],
+  ['ball','⚽','Футбольный мяч',900,'want',10,0],
+  ['aqua','🌊','Билет в аквапарк',900,'want',14,0],
+  ['kalpak','🎁','Калпак в подарок атаке',1500,'gift',15,5],
+  ['bag','🎒','Школьный рюкзак',2200,'need',3,0],
+  ['shoes','👟','Новые кроссовки',2800,'want',10,0],
+  ['lego','🧱','Конструктор',3500,'want',15,0],
+  ['scooter','🛴','Самокат',6000,'want',18,0],
+  ['komuz','🪕','Комуз и уроки игры',7000,'grow',15,40],
+  ['bike','🚲','Велосипед',14000,'want',22,0],
+  ['phone','📱','Смартфон',28000,'want',25,0],
+  ['laptop','💻','Ноутбук для учёбы',55000,'grow',20,80]
+];
+const TYPE_N = {need:'Нужно',want:'Хочу',gift:'Подарок',grow:'Развитие'};
+
+const BIZ = [
+  ['max','🥤','Точка максыма и чалапа',1500,80,250,1,'Продаёшь прохладный максым и чалап у дома.'],
+  ['boor','🧺','Боорсоки на заказ',6000,400,1000,2,'Печёшь боорсоки к тоям и праздникам.'],
+  ['bike','🔧','Ремонт велосипедов',20000,1300,3200,3,'Чинишь велосипеды и самокаты всего района.'],
+  ['shop','🏪','Мини-маркет у дома',80000,4000,9500,4,'Небольшой магазин продуктов для соседей.'],
+  ['cafe','🍲','Кафе-ашкана',250000,12000,28000,5,'Плов, лагман и манты для всего города.'],
+  ['it','💻','IT-студия',600000,30000,70000,6,'Делаешь сайты и приложения для компаний.']
+];
+const BIZ_MAXLV = 5;
+const BIZ_SELL = 0.6;
+const BIZ_UP = 0.5; // +50% прибыли за каждый уровень
+const BADS = ['дождливая неделя, покупателей мало','сломалось оборудование','поставщик поднял цены','заболел помощник','рядом открылся конкурент'];
+
+const DEPS = [
+  ['d12','Вклад на 12 недель',12,0.035],
+  ['d26','Вклад на 26 недель',26,0.075],
+  ['d52','Вклад на 52 недели',52,0.15]
+];
+const SAVE_RATE = 0.01; // накопительный счёт: 1% каждые 4 недели ≈ 12% в год
+
+/* ---------- Ситуации недели ---------- */
+const EVENTS = [
+ {id:'kino',e:'🎬',title:'Кино с друзьями',text:'Друзья зовут в кинотеатр в ТРЦ. Билет и попкорн — 350 сом.',ch:[
+  {t:'Пойти в кино (−350 сом)',m:-350,mood:15,w:null,l:'Тратить на радость — нормально, если это заложено в бюджет и не мешает твоим целям.'},
+  {t:'Позвать друзей смотреть фильм дома',m:0,mood:10,w:true,xp:10,l:'Отдых не всегда стоит денег: ты повеселился и сохранил 350 сом.'}]},
+ {id:'saletoy',e:'🏷',title:'Огромная скидка!',text:'В магазине «−50%» на игрушку, которая тебе не очень нужна: 800 сом вместо 1 600.',ch:[
+  {t:'Купить, ведь скидка! (−800 сом)',m:-800,mood:4,w:false,imp:1,l:'Скидка — не причина покупать. Если вещь не нужна, ты не сэкономил 800 сом, а потратил 800 сом.'},
+  {t:'Пройти мимо — мне это не нужно',m:0,w:true,xp:15,flag:'resist',l:'Отлично! Магазины специально делают яркие скидки, чтобы мы покупали лишнее.'}]},
+ {id:'headph',e:'🎧',title:'Сломались наушники',text:'Наушники перестали работать. Что будешь делать?',ch:[
+  {t:'Купить самые дешёвые (−250 сом)',m:-250,must:1,w:false,fx:p=>{p.pend.push({w:p.week+3,a:-250,t:'🎧 Дешёвые наушники снова сломались'});},l:'Самое дешёвое часто ломается быстро — и платишь дважды.'},
+  {t:'Купить качественные (−700 сом)',m:-700,must:1,w:true,l:'Качественная вещь служит дольше. Иногда «дороже» значит «выгоднее».'},
+  {t:'Отнести мастеру (−120 сом)',m:-120,must:1,w:true,xp:15,l:'Ремонт — самый экономный вариант. Прежде чем покупать новое, проверь, можно ли починить.'}]},
+ {id:'gift',e:'🌷',title:'Подарок на Нооруз',text:'Таенеке (бабушка) подарила тебе 500 сом на Нооруз!',ch:[
+  {t:'Потратить всё на сладости и игры',m:500,mood:12,w:null,fx:p=>{spendQuiet(p,500);},l:'Радоваться подарку — здорово. Но если часть отложить, мечта станет ближе.'},
+  {t:'Половину на радость, половину отложить',m:250,mood:6,w:true,xp:10,fx:p=>{addToSaving(p,250);p.st.earned+=250;return '250 сом отложено.';},l:'Золотая середина: и порадовался, и приблизился к цели.'},
+  {t:'Отложить всё на цель',m:0,mood:2,w:true,xp:12,fx:p=>{addToSaving(p,500);p.st.earned+=500;return '500 сом отложено.';},l:'Терпение — суперсила. Отложенные деньги работают на твою мечту.'}]},
+ {id:'scam1',e:'📩',title:'Сообщение в интернете',text:'Незнакомец пишет: «Отправь мне 1 000 сом — через час верну 2 000!»',ch:[
+  {t:'Отправить 1 000 сом',m:-1000,w:false,l:'Это мошенничество! Никто не удваивает деньги просто так. Деньги пропали.'},
+  {t:'Отказаться и рассказать родителям',m:0,w:true,xp:30,flag:'scam',l:'Правильно! «Удвоим деньги» — главный признак обмана. Всегда рассказывай взрослым о таких сообщениях.'}]},
+ {id:'scam2',e:'📱',title:'SMS: «Вы выиграли!»',text:'Пришло SMS: «Вы выиграли смартфон! Оплатите доставку 500 сом и назовите код из SMS».',ch:[
+  {t:'Оплатить доставку (−500 сом)',m:-500,w:false,l:'Обман! Если ты не участвовал в конкурсе — ты не мог выиграть. И код из SMS никому нельзя называть.'},
+  {t:'Удалить SMS — это обман',m:0,w:true,xp:25,flag:'scam',l:'Верно! Настоящий выигрыш не требует оплаты, а код из SMS — это ключ от денег.'}]},
+ {id:'loan',e:'💸',title:'Быстрые деньги',text:'Реклама микрозайма: «Возьми 3 000 сом прямо сейчас! Вернёшь всего по 750 сом 6 недель».',cond:p=>!p.loan,ch:[
+  {t:'Взять 3 000 сом',m:3000,w:false,fx:p=>{p.loan={left:6,pay:750};},l:'Посчитай: 750 × 6 = 4 500 сом. Переплата 1 500 сом — это половина займа! Брать в долг можно только на очень важное.'},
+  {t:'Отказаться',m:0,w:true,xp:25,flag:'noloan',l:'Мудро! 750 × 6 = 4 500 сом — ты бы переплатил 1 500 сом. Лучше накопить.'}]},
+ {id:'friend',e:'🤝',title:'Друг просит в долг',text:'Одноклассник просит 200 сом до следующей недели.',ch:[
+  {t:'Дать в долг (−200 сом)',m:-200,w:null,fx:p=>{if(Math.random()<.75)p.pend.push({w:p.week+1,a:200,t:'🤝 Друг вернул долг 200 сом'});else p.pend.push({w:p.week+1,a:0,t:'😕 Друг пока не вернул 200 сом'});},l:'Давай в долг только ту сумму, без которой сможешь обойтись, если её не вернут.'},
+  {t:'Вежливо отказать',m:0,w:null,l:'Отказать — нормально. Свои деньги ты вправе беречь.'}]},
+ {id:'wallet',e:'👛',title:'Найденный кошелёк',text:'На улице ты нашёл кошелёк: 1 000 сом и паспорт владельца.',ch:[
+  {t:'Вернуть владельцу',m:200,mood:10,w:true,xp:30,flag:'honest',l:'Честность бесценна. Владелец так обрадовался, что подарил тебе 200 сом.'},
+  {t:'Оставить деньги себе',m:1000,mood:-12,w:false,l:'Эти деньги не твои — на душе неспокойно. Честно заработанные деньги приносят больше радости.'}]},
+ {id:'issyk',e:'🏖',title:'Поездка на Иссык-Куль',text:'Класс едет на Иссык-Куль! Взнос — 1 500 сом.',ch:[
+  {t:'Поехать (−1 500 сом)',m:-1500,mood:25,w:null,l:'Впечатления — хорошая трата. Чтобы крупные траты не были неожиданными, создавай для них цель заранее.'},
+  {t:'Остаться дома',m:0,mood:-10,w:null,l:'Сэкономил, но грустно. В следующий раз можно накопить заранее.'}]},
+ {id:'bazaar',e:'👟',title:'Порвались кроссовки',text:'Кроссовки порвались, нужны новые. На Ош базаре — 1 800 сом, такие же в ТРЦ — 2 600 сом.',ch:[
+  {t:'Купить на базаре (−1 800 сом)',m:-1800,must:1,w:true,xp:12,l:'Сравнивать цены — важная привычка. Ты сэкономил 800 сом!'},
+  {t:'Купить в ТРЦ (−2 600 сом)',m:-2600,must:1,w:false,l:'Та же вещь в разных местах стоит по-разному. Сравнение цен сэкономило бы 800 сом.'}]},
+ {id:'apples',e:'🍎',title:'Поручение мамы',text:'Мама дала 300 сом на 3 кг яблок и разрешила оставить сдачу. 1 кг стоит 80 сом, а упаковка 3 кг — 210 сом.',ch:[
+  {t:'Купить 3 раза по 1 кг',m:60,w:false,l:'3 × 80 = 240 сом. Упаковка стоила 210 — ты мог оставить себе на 30 сом больше.'},
+  {t:'Купить упаковку 3 кг',m:90,w:true,xp:10,l:'Верно посчитал! 3 × 80 = 240, а упаковка — 210. Сдача 90 сом твоя.'}]},
+ {id:'skin',e:'🎮',title:'Покупка в игре',text:'В мобильной игре предлагают купить скин персонажа за 400 сом.',ch:[
+  {t:'Купить скин (−400 сом)',m:-400,mood:6,w:false,imp:1,l:'Виртуальные покупки быстро надоедают, а деньги уходят по-настоящему.'},
+  {t:'Не покупать',m:0,w:true,xp:12,flag:'resist',l:'Молодец! Игры часто подталкивают к покупкам — важно уметь сказать «нет».'}]},
+ {id:'sick',e:'🤒',title:'Простуда',text:'Ты простыл. Нужно лекарство — 300 сом.',ch:[
+  {t:'Купить лекарство (−300 сом)',m:-300,must:1,w:null,l:'Неожиданные расходы бывают у всех. Для них нужна «подушка безопасности» — запас денег.'}]},
+ {id:'screen',e:'📵',title:'Разбился экран',text:'Ты уронил телефон, экран треснул. Замена у мастера — 1 200 сом.',ch:[
+  {t:'Заменить экран (−1 200 сом)',m:-1200,must:1,w:null,l:'Защитное стекло за 150 сом могло бы сохранить 1 200. Иногда маленькая трата защищает от большой.'}]},
+ {id:'contest',e:'🎨',title:'Конкурс рисунков',text:'Городской конкурс рисунков. Участие бесплатное, приз — 1 000 сом.',ch:[
+  {t:'Участвовать!',m:0,w:true,xp:15,fx:p=>{if(Math.random()<.5){earn(p,1000,'🏆 Приз конкурса рисунков');moodAdd(p,10);return '🏆 Ты победил и получил 1 000 сом!';}return 'В этот раз не победил, но получил опыт.';},l:'Пробовать новое полезно: даже без приза ты становишься лучше.'},
+  {t:'Не участвовать',m:0,w:null,l:'Возможности приходят не каждый день — иногда стоит рискнуть, если это бесплатно.'}]},
+ {id:'lalafo',e:'📦',title:'Старые игрушки',text:'У тебя много игрушек, в которые ты больше не играешь.',ch:[
+  {t:'Продать их на lalafo (+450 сом)',m:450,w:true,xp:15,l:'Ненужные вещи можно превратить в деньги — это тоже доход.'},
+  {t:'Подарить младшим детям',m:0,mood:8,w:true,xp:10,l:'Щедрость — тоже хорошее решение. Вещи продолжают приносить радость.'},
+  {t:'Оставить пылиться',m:0,w:null,l:'Вещи, которыми не пользуешься, просто занимают место.'}]},
+ {id:'backpack',e:'🎒',title:'Скидка на нужное',text:'Твой рюкзак совсем износился. Сегодня хороший рюкзак со скидкой: 1 200 сом вместо 2 000.',ch:[
+  {t:'Купить со скидкой (−1 200 сом)',m:-1200,w:true,xp:10,l:'Скидка на нужную вещь — настоящая экономия: ты сохранил 800 сом.'},
+  {t:'Подождать',m:0,mood:-3,w:null,l:'Потом рюкзак всё равно придётся купить, но уже за полную цену.'}]},
+ {id:'bday',e:'🎂',title:'День рождения друга',text:'У лучшего друга день рождения. Нужен подарок.',ch:[
+  {t:'Купить подарок (−500 сом)',m:-500,mood:8,w:null,l:'Подарки друзьям — важная часть бюджета.'},
+  {t:'Сделать подарок своими руками (−50 сом)',m:-50,mood:8,w:true,xp:12,l:'Подарок своими руками ценят не меньше — а иногда и больше!'}]},
+ {id:'hot',e:'☀️',title:'Жаркая неделя!',text:'На улице +38°. Все хотят холодного максыма!',cond:p=>p.biz.some(b=>b.id==='max'),ch:[
+  {t:'Ура, торговать!',m:0,w:null,fx:p=>{const b=p.biz.find(x=>x.id==='max');const a=200*b.lv;earn(p,a,'☀️ Жаркая неделя у точки максыма');b.total+=a;p.st.bizp+=a;return 'Дополнительная выручка: +'+fmt(a);},l:'Спрос зависит от погоды и сезона — хороший предприниматель это учитывает.'}]},
+ {id:'rival',e:'🥊',title:'Конкурент',text:'Рядом с твоим бизнесом открылся конкурент с такими же товарами.',cond:p=>p.biz.length>0,ch:[
+  {t:'Сделать акцию и рекламу (−300 сом)',m:-300,must:1,w:true,xp:15,fx:p=>{p.boost=1.5;return 'На следующей неделе бизнес заработает больше.';},l:'Конкуренция заставляет становиться лучше. Вложение в рекламу окупилось.'},
+  {t:'Ничего не делать',m:0,w:false,fx:p=>{p.boost=0.7;return 'Часть покупателей ушла к конкуренту.';},l:'Если не реагировать на конкурентов, клиенты уходят.'}]},
+ {id:'tax',e:'🧾',title:'Налоги',text:p=>'Твой бизнес заработал деньги. Нужно заплатить налог — 10% от прибыли прошлой недели: '+fmt(taxOf(p))+'.',cond:p=>p.lastBizP>300,ch:[
+  {t:'Заплатить налог',m:0,w:true,xp:10,fx:p=>{payMust(p,taxOf(p),'🧾 Налог');},l:'Налоги идут на школы, больницы и дороги. Честный бизнес платит налоги.'}]},
+ {id:'help',e:'🙏',title:'Сбор помощи',text:'В школе собирают помощь семье, у которой сгорел дом.',ch:[
+  {t:'Помочь 200 сом',m:-200,mood:10,w:true,xp:15,l:'Помогать другим — важная часть разумного отношения к деньгам.'},
+  {t:'Помочь делом: принести вещи',m:0,mood:8,w:true,xp:10,l:'Помочь можно не только деньгами.'},
+  {t:'Не участвовать',m:0,w:null,l:'Решать тебе. Но доброе дело часто делает богаче душой.'}]}
+];
+const EVM = Object.fromEntries(EVENTS.map(e=>[e.id,e]));
+function taxOf(p){return Math.max(30,Math.round(p.lastBizP*0.1));}
+
+/* ---------- Вопросы недели ---------- */
+const QUIZ = [
+ ['Что важнее купить в первую очередь?',['Новую игру','Школьную обувь, когда старая порвалась','Пятое мороженое за день'],1,'Сначала — потребности (то, без чего нельзя), потом — желания.'],
+ ['Как называется валюта Кыргызстана?',['Тенге','Сом','Рубль','Доллар'],1,'Кыргызский сом — национальная валюта с 1993 года.'],
+ ['Ты положил 1 000 сом на вклад под 10% в год. Сколько будет через год?',['1 010 сом','1 100 сом','2 000 сом'],1,'10% от 1 000 = 100. Итого 1 100 сом.'],
+ ['Что такое бюджет?',['План доходов и расходов','Название банка','Большая скидка'],0,'Бюджет — план: сколько получишь и на что потратишь.'],
+ ['Незнакомец просит назвать код из SMS, «чтобы перевести приз». Что делать?',['Назвать код','Никому не говорить код и рассказать родителям','Перезвонить и уточнить'],1,'Код из SMS — ключ к деньгам. Его никогда никому не говорят.'],
+ ['Что такое «подушка безопасности»?',['Мягкая подушка','Запас денег на неожиданные расходы','Страховка в машине'],1,'Подушка безопасности спасает, когда что-то ломается или нужно лечение.'],
+ ['Импульсивная покупка — это…',['Покупка по списку','Покупка «на эмоциях», без раздумий','Покупка в рассрочку'],1,'Импульсивные покупки чаще всего потом не нужны.'],
+ ['Где деньги растут сами, пусть и медленно?',['В кошельке','Под подушкой','На вкладе в банке'],2,'Банк платит проценты за то, что твои деньги лежат у него.'],
+ ['Кредит — это…',['Подарок от банка','Деньги в долг, которые надо вернуть с процентами','Зарплата'],1,'Кредит всегда возвращают — и больше, чем взяли.'],
+ ['Взял в долг 1 000 сом, вернуть нужно 1 300. Какая переплата?',['100 сом','300 сом','1 300 сом'],1,'1 300 − 1 000 = 300 сом переплаты.'],
+ ['Что такое прибыль бизнеса?',['Все деньги от продаж','Доходы минус расходы','Деньги в банке'],1,'Выручка — все деньги от продаж. Прибыль — то, что осталось после расходов.'],
+ ['Товар стоил 2 000 сом, скидка 25%. Какая новая цена?',['1 500 сом','1 750 сом','1 975 сом'],0,'25% от 2 000 = 500. 2 000 − 500 = 1 500 сом.'],
+ ['Правило «подожди 24 часа» перед покупкой помогает…',['Купить быстрее','Избежать ненужных покупок','Получить скидку'],1,'Если через день вещь всё ещё нужна — покупай. Часто желание проходит.'],
+ ['Что из этого — желание, а не потребность?',['Хлеб','Лекарство при болезни','Третья пара кроссовок','Тёплая куртка зимой'],2,'Потребность — то, без чего трудно жить. Желание — то, что приятно иметь.'],
+ ['Зачем платят налоги?',['Чтобы стать беднее','На школы, больницы и дороги','Это штраф'],1,'Налоги — общие деньги страны на то, чем пользуются все.'],
+ ['Нужно 3 кг риса. Что выгоднее: 1 кг за 100 сом или 3 кг за 270 сом?',['Три раза по 1 кг','Упаковка 3 кг','Одинаково'],1,'3 × 100 = 300, а упаковка — 270. Экономия 30 сом.'],
+ ['Почему не стоит вкладывать все деньги в одно дело?',['Это скучно','Если с ним что-то случится, потеряешь всё','Так запрещает банк'],1,'«Не клади все яйца в одну корзину» — главное правило инвестора.'],
+ ['Откладываешь 200 сом в неделю. Сколько накопишь за 10 недель?',['1 000 сом','2 000 сом','2 200 сом'],1,'200 × 10 = 2 000 сом. Маленькие суммы складываются в большие.'],
+ ['Что делает Национальный банк Кыргызской Республики?',['Продаёт продукты','Выпускает сомы и следит за работой банков','Строит дороги'],1,'Нацбанк — главный банк страны: печатает деньги и следит за банками.'],
+ ['Обещают «удвоить деньги за неделю без риска». Это скорее всего…',['Удача','Мошенничество','Обычный вклад'],1,'Большой доход без риска не бывает. Это признак обмана.'],
+ ['Что такое процент по вкладу?',['Плата банка тебе за хранение твоих денег','Штраф','Налог'],0,'Банк использует твои деньги и за это платит тебе процент.'],
+ ['Велосипед стоит 6 000 сом. Откладываешь 500 в неделю. Сколько недель копить?',['6','10','12'],2,'6 000 : 500 = 12 недель.'],
+ ['Как лучше всего узнать, куда уходят деньги?',['Не думать об этом','Записывать доходы и расходы','Тратить быстрее'],1,'Записи показывают, где можно сэкономить.'],
+ ['Что такое инвестиция?',['Трата на сладости','Вложение денег, чтобы они приносили доход','Долг другу'],1,'Инвестиция — когда деньги работают и приносят новые деньги.'],
+ ['Акция: «Купи 2 — третий бесплатно». Тебе нужен один. Что разумно?',['Купить 3','Купить один','Купить 10'],1,'Акция выгодна, только если тебе действительно нужно столько.'],
+ ['Что такое доход?',['Деньги, которые ты получаешь','Деньги, которые ты тратишь','Долг'],0,'Доход — то, что приходит: зарплата, карманные деньги, прибыль.'],
+ ['Какой вклад обычно даёт больший процент?',['Который можно снять в любой день','Срочный — на долгий срок','Одинаково'],1,'За то, что деньги долго лежат в банке, он платит больше.'],
+ ['Бизнес продал на 5 000 сом, а потратил 3 000. Какая прибыль?',['8 000 сом','2 000 сом','5 000 сом'],1,'5 000 − 3 000 = 2 000 сом прибыли.']
+];
+
+const ACH = [
+ ['w1','🎒','Первые шаги','Заверши первую неделю',p=>p.week>=2],
+ ['goal','🎯','Мечтатель','Создай первую цель',p=>p.goals.length>0||p.fl.goalDone],
+ ['goaldone','🎉','Мечта сбылась','Накопи на цель и купи её',p=>p.fl.goalDone],
+ ['auto','🐷','Автокопилка','Включи автокопилку',p=>p.auto>0],
+ ['bank','🏦','Клиент банка','Положи деньги на счёт',p=>p.fl.bank],
+ ['int','💹','Деньги работают','Получи первые проценты',p=>p.st.interest>0],
+ ['dep','🔒','Терпеливый','Открой срочный вклад',p=>p.fl.dep],
+ ['biz1','🥤','Первый бизнес','Открой свой первый бизнес',p=>p.fl.biz],
+ ['biz3','🏭','Своя империя','Владей тремя бизнесами',p=>p.biz.length>=3],
+ ['bizmax','⭐','Мастер своего дела','Прокачай бизнес до 5 уровня',p=>p.biz.some(b=>b.lv>=BIZ_MAXLV)],
+ ['scam','🛡','Не проведёшь!','Распознай мошенников',p=>p.st.scam>=1],
+ ['resist','🧊','Холодная голова','Откажись от ненужной покупки 3 раза',p=>p.st.resist>=3],
+ ['noloan','🚫','Без долгов','Откажись от микрозайма',p=>p.fl.noloan],
+ ['honest','🤝','Честное сердце','Верни найденный кошелёк',p=>p.fl.honest],
+ ['quiz10','🧠','Знаток','Ответь правильно на 10 вопросов',p=>p.st.qc>=10],
+ ['work30','💪','Трудяга','Выполни 30 домашних дел',p=>p.st.ch>=30],
+ ['real','🏠','Помощник семьи','Выполни задание от родителей',p=>p.st.real>0],
+ ['k10','💰','10 тысяч','Капитал 10 000 сом',p=>nw(p)>=1e4],
+ ['k100','💎','100 тысяч','Капитал 100 000 сом',p=>nw(p)>=1e5],
+ ['m1','👑','Мой первый миллион','Капитал 1 000 000 сом',p=>nw(p)>=1e6]
+];
+
+/* =================== ХРАНЕНИЕ =================== */
+const KEY='moy_pervyi_million_v1';
+let MEM=null;
+function blank(){return {profiles:{},order:[],parent:{pin:null},reports:{},cur:null};}
+function load(){try{const s=localStorage.getItem(KEY);if(s)return Object.assign(blank(),JSON.parse(s));}catch(e){}return MEM||blank();}
+function save(){MEM=S;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+let S=load();
+let VIEW='profiles', TAB='home', PARENT_OK=false, NEWAV=AVATARS[0];
+
+/* =================== УТИЛИТЫ =================== */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(n){return Math.round(n).toLocaleString('ru-RU')+' сом';}
+function sgn(n){return (n>0?'+':n<0?'−':'')+fmt(Math.abs(n));}
+function rnd(a,b){return a+Math.random()*(b-a);}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function P(){return S.profiles[S.cur];}
+function lvl(p){let i=0;LEVELS.forEach((l,k)=>{if(p.xp>=l[0])i=k;});return i;}
+function nw(p){return Math.round(p.cash+p.bank+p.deps.reduce((s,d)=>s+d.a,0)+p.goals.reduce((s,g)=>s+(g.done?0:g.saved),0)+p.biz.reduce((s,b)=>s+b.inv*BIZ_SELL,0)-(p.loan?p.loan.left*p.loan.pay:0));}
+function goalsSum(p){return p.goals.reduce((s,g)=>s+(g.done?0:g.saved),0);}
+function depSum(p){return p.deps.reduce((s,d)=>s+d.a,0);}
+
+function newProfile(name,av){
+  const p={id:uid(),name,av,week:1,cash:START_CASH,bank:0,deps:[],goals:[],biz:[],inv:[],mood:70,xp:0,ach:[],log:[],
+    chores:[],quiz:null,ev:null,pend:[],loan:null,auto:0,pocket:300,ptasks:[],hist:[START_CASH],recent:[],qseen:[],disc:null,boost:1,lastBizP:0,
+    st:{wise:0,unwise:0,imp:0,resist:0,qc:0,qt:0,ch:0,earned:0,spent:0,interest:0,bizp:0,scam:0,real:0},fl:{},created:Date.now()};
+  startWeek(p);
+  addLog(p,'🎉 Начало игры. Стартовый капитал',START_CASH);
+  return p;
+}
+function addLog(p,t,a){p.log.unshift({w:p.week,t,a:a||0});if(p.log.length>200)p.log.length=200;}
+function earn(p,a,t){p.cash+=a;p.st.earned+=a;addLog(p,t,a);}
+function spend(p,a,t){p.cash-=a;p.st.spent+=a;addLog(p,t,-a);}
+function spendQuiet(p,a){p.cash-=a;p.st.spent+=a;}
+function moodAdd(p,d){p.mood=Math.max(0,Math.min(100,p.mood+d));}
+function addXp(p,x){const before=lvl(p);p.xp+=x;const after=lvl(p);if(after>before)setTimeout(()=>levelUp(after),350);}
+function addToSaving(p,a){const g=p.goals.find(x=>!x.done);if(g)g.saved+=a;else p.bank+=a;}
+/* обязательный расход: сначала наличные, потом банк, потом копилки */
+function payMust(p,a,t){
+  let need=a;const take=Math.min(p.cash,need);p.cash-=take;need-=take;
+  if(need>0){const b=Math.min(p.bank,need);p.bank-=b;need-=b;}
+  for(const g of p.goals){if(need<=0)break;if(g.done)continue;const x=Math.min(g.saved,need);g.saved-=x;need-=x;}
+  p.st.spent+=a-need;addLog(p,t,-(a-need));
+  if(need>0){moodAdd(p,-10);addLog(p,'⚠️ Не хватило денег, родители помогли. Нужна подушка безопасности!',0);return false;}
+  return true;
+}
+
+/* =================== НЕДЕЛЯ =================== */
+function pickEvent(p){
+  let el=EVENTS.filter(e=>(!e.cond||e.cond(p))&&!p.recent.includes(e.id));
+  if(!el.length)el=EVENTS.filter(e=>!e.cond||e.cond(p));
+  const e=pick(el);p.recent.push(e.id);if(p.recent.length>10)p.recent.shift();return e.id;
+}
+function pickQuiz(p){
+  let pool=QUIZ.map((q,i)=>i).filter(i=>!p.qseen.includes(i));
+  if(!pool.length){p.qseen=[];pool=QUIZ.map((q,i)=>i);}
+  const i=pick(pool);p.qseen.push(i);return i;
+}
+function startWeek(p){
+  p.chores=[];
+  p.quiz={i:pickQuiz(p),ans:null};
+  p.ev={id:pickEvent(p),done:false,res:null};
+  const it=pick(SHOP.filter(x=>x[3]>=400));
+  p.disc={id:it[0],pct:pick([20,25,30,40])};
+}
+function price(p,it){return p.disc&&p.disc.id===it[0]?Math.round(it[3]*(100-p.disc.pct)/100):it[3];}
+
+function endWeek(){
+  const p=P();
+  if(p.ev&&!p.ev.done){toast('Сначала реши ситуацию недели ☝️');TAB='home';render();return;}
+  const R=[];const nw0=nw(p);
+  // карманные деньги + автокопилка
+  if(p.pocket>0){
+    earn(p,p.pocket,'💵 Карманные деньги');R.push(['💵 Карманные деньги',p.pocket]);
+    const s=Math.round(p.pocket*p.auto/100);
+    if(s>0){p.cash-=s;addToSaving(p,s);R.push(['🐷 Автокопилка отложила',s,'save']);}
+  }
+  // бизнесы
+  if(p.biz.length){
+    let bt=0;
+    p.biz.forEach(b=>{const d=BIZM[b.id];let pr;
+      if(Math.random()<0.1){pr=-Math.round(d[3]*0.03);b.bad=pick(BADS);}
+      else{pr=Math.round(rnd(d[4],d[5])*(1+BIZ_UP*(b.lv-1))*p.boost);b.bad=null;}
+      b.last=pr;b.total+=pr;b.weeks++;bt+=pr;
+      R.push([d[1]+' '+d[2]+(b.bad?' — '+b.bad:''),pr]);});
+    p.st.bizp+=bt;p.lastBizP=bt;
+    if(bt>=0)earn(p,bt,'🏪 Прибыль бизнеса');else payMust(p,-bt,'🏪 Убыток бизнеса');
+  }else p.lastBizP=0;
+  p.boost=1;
+  // проценты
+  if(p.week%4===0&&p.bank>0){const i=Math.round(p.bank*SAVE_RATE);if(i>0){p.bank+=i;p.st.interest+=i;addLog(p,'💹 Проценты по накопительному счёту',i);R.push(['💹 Проценты на счёте',i]);}}
+  p.deps.forEach(d=>d.left--);
+  p.deps.filter(d=>d.left<=0).forEach(d=>{const i=Math.round(d.a*d.r);p.cash+=d.a+i;p.st.interest+=i;addLog(p,'🔓 Вклад закрыт: '+fmt(d.a)+' + проценты',i);R.push(['🔓 Вклад вернулся с процентами',d.a+i]);});
+  p.deps=p.deps.filter(d=>d.left>0);
+  // кредит
+  if(p.loan){payMust(p,p.loan.pay,'💸 Платёж по микрозайму');R.push(['💸 Платёж по микрозайму',-p.loan.pay]);p.loan.left--;if(p.loan.left<=0){p.loan=null;R.push(['✅ Микрозайм погашен',0]);}}
+  // отложенные события
+  p.pend.filter(x=>x.w<=p.week).forEach(x=>{if(x.a>0)earn(p,x.a,x.t);else if(x.a<0)payMust(p,-x.a,x.t);else addLog(p,x.t,0);R.push([x.t,x.a]);});
+  p.pend=p.pend.filter(x=>x.w>p.week);
+  // настроение
+  moodAdd(p,-5);
+  p.week++;
+  p.hist.push(nw(p));if(p.hist.length>260)p.hist.shift();
+  startWeek(p);
+  save();
+  weekReport(p,R,nw0);
+  checkAch(p);
+}
+const BIZM=Object.fromEntries(BIZ.map(b=>[b[0],b]));
+
+/* =================== ДЕЙСТВИЯ =================== */
+function choose(i){
+  const p=P(),e=EVM[p.ev.id],c=e.ch[i];
+  if(p.ev.done)return;
+  if(c.m<0&&!c.must&&p.cash<-c.m){toast('Не хватает наличных 😕');return;}
+  const msg=[];
+  if(c.m>0)earn(p,c.m,e.e+' '+e.title);
+  else if(c.m<0){if(c.must)payMust(p,-c.m,e.e+' '+e.title);else spend(p,-c.m,e.e+' '+e.title);}
+  if(c.mood)moodAdd(p,c.mood);
+  if(c.w===true)p.st.wise++;if(c.w===false)p.st.unwise++;
+  if(c.imp)p.st.imp++;
+  if(c.flag==='resist')p.st.resist++;
+  if(c.flag==='scam')p.st.scam++;
+  if(c.flag)p.fl[c.flag]=1;
+  addXp(p,(c.xp||0)+5);
+  if(c.fx){const r=c.fx(p);if(r)msg.push(r);}
+  p.ev.done=true;p.ev.res={c:i,msg:msg.join(' ')};
+  save();render();checkAch(p);
+}
+function answer(k){
+  const p=P();if(p.quiz.ans!==null)return;
+  const q=QUIZ[p.quiz.i];p.quiz.ans=k;p.st.qt++;
+  if(k===q[2]){p.st.qc++;addXp(p,20);earn(p,50,'🧠 Правильный ответ на вопрос недели');toast('Верно! +50 сом и +20 опыта');}
+  else{addXp(p,5);}
+  save();render();checkAch(p);
+}
+function doChore(id){
+  const p=P();
+  if(p.chores.includes(id))return;
+  if(p.chores.length>=MAX_CHORES){toast('На этой неделе сил больше нет: максимум '+MAX_CHORES+' дела');return;}
+  const c=CHORES.find(x=>x[0]===id);
+  const k=p.mood<30?0.7:1;const pay=Math.round(c[3]*k);
+  p.chores.push(id);earn(p,pay,c[1]+' '+c[2]);p.st.ch++;addXp(p,5);
+  toast('+'+fmt(pay)+(k<1?' (настроение низкое — заработок меньше)':''));
+  save();render();checkAch(p);
+}
+function buy(id){
+  const p=P(),it=SHOP.find(x=>x[0]===id),pr=price(p,it);
+  if(p.cash<pr){toast('Не хватает наличных. Можно поставить цель 🎯');return;}
+  spend(p,pr,it[1]+' Покупка: '+it[2]);p.inv.push(id);moodAdd(p,it[5]);if(it[6])addXp(p,it[6]);
+  const msg={need:'Нужная вещь куплена 👍',want:'Ура! Радость — тоже важная часть бюджета 😊',gift:'Подарок близким — это здорово ❤️',grow:'Вложение в себя — лучшая инвестиция 📚'}[it[4]];
+  toast(msg);save();render();checkAch(p);
+}
+function goalFromShop(id){
+  const p=P(),it=SHOP.find(x=>x[0]===id);
+  if(p.goals.some(g=>!g.done&&g.item===id)){toast('Такая цель уже есть');return;}
+  p.goals.push({id:uid(),e:it[1],n:it[2],target:it[3],saved:0,item:id,done:false});
+  addXp(p,10);toast('Цель создана: '+it[2]);TAB='goals';save();render();checkAch(p);
+}
+function addGoal(){
+  const p=P();const n=($('gN').value||'').trim();const t=parseInt($('gT').value,10);const e=$('gE').value||'⭐';
+  if(!n){toast('Напиши, на что копишь');return;}
+  if(!(t>=100)){toast('Сумма цели — от 100 сом');return;}
+  p.goals.push({id:uid(),e,n,target:t,saved:0,item:null,done:false});addXp(p,10);
+  toast('Цель создана!');save();render();checkAch(p);
+}
+function goalPut(gid){
+  const p=P(),g=p.goals.find(x=>x.id===gid);
+  askAmount('Положить в «'+g.n+'»',Math.min(p.cash,g.target-g.saved),a=>{p.cash-=a;g.saved+=a;addLog(p,'🎯 Отложено на «'+g.n+'»',0);addXp(p,3);save();render();});
+}
+function goalTake(gid){
+  const p=P(),g=p.goals.find(x=>x.id===gid);
+  askAmount('Забрать из «'+g.n+'»',g.saved,a=>{g.saved-=a;p.cash+=a;addLog(p,'↩️ Забрано из цели «'+g.n+'»',0);save();render();});
+}
+function goalBuy(gid){
+  const p=P(),g=p.goals.find(x=>x.id===gid);
+  if(g.saved<g.target)return;
+  p.cash+=g.saved-g.target;g.saved=0;g.done=true;p.st.spent+=g.target;
+  if(g.item)p.inv.push(g.item);
+  addLog(p,'🎉 Мечта сбылась: '+g.n,-g.target);
+  moodAdd(p,25);addXp(p,50);p.fl.goalDone=1;
+  modal(`<div class="celebrate"><span class="e">${g.e}</span><h2>Мечта сбылась!</h2><p>Ты накопил ${fmt(g.target)} и купил: <b>${esc(g.n)}</b>.</p><p class="mut" style="margin:10px 0 16px">Терпение и план — вот секрет больших покупок. +50 опыта</p><button class="btn wide" onclick="closeModal()">Ура!</button></div>`);
+  save();render();checkAch(p);
+}
+function goalDel(gid){
+  const p=P(),g=p.goals.find(x=>x.id===gid);
+  askConfirm('Удалить цель «'+g.n+'»? Отложенные '+fmt(g.saved)+' вернутся в кошелёк.',()=>{p.cash+=g.saved;p.goals=p.goals.filter(x=>x.id!==gid);save();render();});
+}
+function setAuto(v){const p=P();p.auto=v;save();render();checkAch(p);}
+function bankPut(){const p=P();askAmount('Положить на накопительный счёт',p.cash,a=>{p.cash-=a;p.bank+=a;p.fl.bank=1;addLog(p,'🏦 Положено на счёт '+fmt(a),0);addXp(p,5);save();render();checkAch(p);});}
+function bankTake(){const p=P();askAmount('Снять со счёта',p.bank,a=>{p.bank-=a;p.cash+=a;addLog(p,'🏦 Снято со счёта '+fmt(a),0);save();render();});}
+function openDep(k){
+  const p=P(),d=DEPS.find(x=>x[0]===k);
+  askAmount(d[1]+' (+'+(d[3]*100).toFixed(1).replace('.',',')+'%)',p.cash,a=>{
+    if(a<500){toast('Минимальная сумма вклада — 500 сом');return;}
+    p.cash-=a;p.deps.push({id:uid(),k,n:d[1],a,r:d[3],left:d[2],total:d[2]});p.fl.dep=1;p.fl.bank=1;
+    addLog(p,'🔒 Открыт '+d[1].toLowerCase()+': '+fmt(a),0);addXp(p,15);save();render();checkAch(p);
+  },'Минимум 500 сом. Деньги вернутся с процентами через '+d[2]+' недель.');
+}
+function closeDep(id){
+  const p=P(),d=p.deps.find(x=>x.id===id);
+  askConfirm('Закрыть вклад досрочно? Ты получишь '+fmt(d.a)+', но потеряешь проценты.',()=>{p.cash+=d.a;p.deps=p.deps.filter(x=>x.id!==id);addLog(p,'🔓 Вклад закрыт досрочно, проценты потеряны',0);save();render();});
+}
+function buyBiz(id){
+  const p=P(),d=BIZM[id];
+  if(lvl(p)+1<d[6]){toast('Нужен уровень '+d[6]);return;}
+  if(p.cash<d[3]){toast('Не хватает наличных: нужно '+fmt(d[3]));return;}
+  if(p.biz.some(b=>b.id===id)){toast('Этот бизнес у тебя уже есть — прокачивай его!');return;}
+  spend(p,d[3],d[1]+' Открыт бизнес: '+d[2]);
+  p.biz.push({id,lv:1,inv:d[3],total:0,last:0,weeks:0,bad:null});p.fl.biz=1;addXp(p,40);
+  modal(`<div class="celebrate"><span class="e">${d[1]}</span><h2>Ты открыл бизнес!</h2><p><b>${d[2]}</b> будет приносить прибыль каждую неделю. Но бывают и плохие недели — это риск предпринимателя.</p><button class="btn wide" style="margin-top:16px" onclick="closeModal()">Вперёд!</button></div>`);
+  save();render();checkAch(p);
+}
+function upCost(b){return Math.round(BIZM[b.id][3]*0.5*b.lv);}
+function upBiz(i){
+  const p=P(),b=p.biz[i],c=upCost(b);
+  if(b.lv>=BIZ_MAXLV)return;
+  if(p.cash<c){toast('Для улучшения нужно '+fmt(c));return;}
+  spend(p,c,'⬆️ Улучшение: '+BIZM[b.id][2]);b.lv++;b.inv+=c;addXp(p,20);
+  toast('Уровень бизнеса: '+b.lv+'! Прибыль выросла');save();render();checkAch(p);
+}
+function sellBiz(i){
+  const p=P(),b=p.biz[i],v=Math.round(b.inv*BIZ_SELL);
+  askConfirm('Продать «'+BIZM[b.id][2]+'» за '+fmt(v)+'? (Вложено: '+fmt(b.inv)+')',()=>{p.biz.splice(i,1);earn(p,v,'💼 Продан бизнес');save();render();});
+}
+function ptDone(tid){const p=P(),t=p.ptasks.find(x=>x.id===tid);t.status='done';save();render();toast('Отмечено! Попроси родителя подтвердить');}
+
+/* =================== ДОСТИЖЕНИЯ =================== */
+function checkAch(p){
+  const got=[];
+  ACH.forEach(a=>{if(!p.ach.includes(a[0])&&a[4](p)){p.ach.push(a[0]);got.push(a);p.xp+=25;}});
+  if(!got.length)return;
+  save();
+  if(got.some(a=>a[0]==='m1')){million(p);return;}
+  got.forEach((a,k)=>setTimeout(()=>toast(a[1]+' Достижение: '+a[2]+' (+25 опыта)'),k*1800+200));
+  render();
+}
+function levelUp(i){const l=LEVELS[i];modal(`<div class="celebrate"><span class="e">${l[2]}</span><h2>Новый уровень!</h2><p>Теперь ты — <b>${l[1]}</b> (уровень ${i+1}).</p>${BIZ.filter(b=>b[6]===i+1).map(b=>`<p class="lesson good">Открыт новый бизнес: ${b[1]} ${b[2]}</p>`).join('')}<button class="btn wide" style="margin-top:16px" onclick="closeModal()">Отлично!</button></div>`);render();}
+function million(p){
+  modal(`<div class="celebrate"><span class="e">👑</span><h1>Мой первый миллион!</h1><p style="margin:10px 0">${esc(p.name)}, твой капитал — <b>${fmt(nw(p))}</b>!</p><p class="lesson good">Ты прошёл путь за ${p.week-1} недель. Разумных решений: ${wisePct(p.st)}%. Главное — не сами деньги, а умение ими управлять.</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Ура!</button></div>`);
+  render();
+}
+function wisePct(st){const t=st.wise+st.unwise;return t?Math.round(st.wise/t*100):0;}
+
+/* =================== ОКНА =================== */
+let CB=null;
+function modal(h){$('modal').innerHTML=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="md">${h}</div></div>`;}
+function closeModal(){$('modal').innerHTML='';CB=null;}
+let TT=null;
+function toast(t){const el=$('toast');el.innerHTML=`<div class="toast">${t}</div>`;clearTimeout(TT);TT=setTimeout(()=>{el.innerHTML='';},2400);}
+function askAmount(title,max,cb,hint){
+  max=Math.max(0,Math.floor(max));
+  if(max<=0){toast('Здесь пока нет денег');return;}
+  CB=cb;
+  const q=[100,500,1000,5000].filter(x=>x<max);
+  modal(`<h2>${esc(title)}</h2>${hint?`<p class="mut" style="margin-bottom:10px">${hint}</p>`:''}<p class="mut">Доступно: <b>${fmt(max)}</b></p>
+  <input id="amt" class="inp" type="number" inputmode="numeric" min="1" max="${max}" placeholder="Сумма в сомах" style="margin:10px 0">
+  <div class="seg" style="margin-bottom:16px">${q.map(x=>`<button onclick="$('amt').value=${x}">${x.toLocaleString('ru-RU')}</button>`).join('')}<button onclick="$('amt').value=${max}">Всё</button></div>
+  <div class="row"><button class="btn ghost" style="flex:1" onclick="closeModal()">Отмена</button><button class="btn" style="flex:1" onclick="amtOk(${max})">Готово</button></div>`);
+  setTimeout(()=>{const i=$('amt');if(i)i.focus();},50);
+}
+function amtOk(max){const a=Math.floor(Number($('amt').value));if(!(a>0)){toast('Введи сумму');return;}if(a>max){toast('Максимум — '+fmt(max));return;}const f=CB;closeModal();f(a);}
+function askConfirm(t,cb){CB=cb;modal(`<h2>Ты уверен?</h2><p style="margin-bottom:18px">${esc(t)}</p><div class="row"><button class="btn ghost" style="flex:1" onclick="closeModal()">Нет</button><button class="btn red" style="flex:1" onclick="cfOk()">Да</button></div>`);}
+function cfOk(){const f=CB;closeModal();f&&f();}
+function weekReport(p,R,nw0){
+  const d=nw(p)-nw0;
+  modal(`<h2>📅 Итоги недели ${p.week-1}</h2>
+  ${R.length?R.map(r=>`<div class="rl"><span>${r[0]}</span><b class="${r[2]==='save'?'':r[1]>0?'pos':r[1]<0?'neg':''}">${r[2]==='save'?fmt(r[1]):r[1]?sgn(r[1]):''}</b></div>`).join(''):'<p class="mut">Тихая неделя.</p>'}
+  <div class="rl" style="border:none;margin-top:6px"><span><b>Капитал изменился</b></span><b class="${d>=0?'pos':'neg'}">${sgn(d)}</b></div>
+  <div class="lesson" style="margin-bottom:12px">${tipOfWeek(p)}</div>
+  <button class="btn wide" onclick="closeModal();TAB='home';render();window.scrollTo(0,0)">Начать неделю ${p.week} ▶</button>`);
+}
+function tipOfWeek(p){
+  if(p.mood<30)return '😟 Настроение низкое — домашние дела приносят меньше. Разумно тратить немного и на радость!';
+  if(p.loan)return '💸 У тебя долг по микрозайму. Сначала избавься от долгов, потом трать.';
+  if(!p.goals.some(g=>!g.done))return '🎯 Совет: поставь цель — так легче копить.';
+  if(p.auto===0)return '🐷 Совет: включи автокопилку — часть карманных денег будет откладываться сама.';
+  if(p.bank+depSum(p)===0&&p.cash>2000)return '🏦 У тебя много наличных. В банке они могли бы приносить проценты.';
+  if(!p.biz.length&&p.cash>=1500)return '🥤 Хватает на первый бизнес! Загляни во вкладку «Бизнес».';
+  return pick(['💡 Плати сначала себе: откладывай часть любого дохода.','💡 Перед покупкой спроси себя: «Мне это нужно или просто хочется?»','💡 Не клади все деньги в одно место: часть в банк, часть в бизнес.','💡 Маленькие траты каждый день складываются в большие суммы.']);
+}
+
+/* =================== ЭКРАНЫ =================== */
+function render(){
+  const a=$('app');
+  if(VIEW==='profiles'){a.innerHTML=vProfiles();$('nav').innerHTML='';return;}
+  if(VIEW==='new'){a.innerHTML=vNew();$('nav').innerHTML='';return;}
+  if(VIEW==='parent'){a.innerHTML=vParent();$('nav').innerHTML='';return;}
+  const p=P();if(!p){VIEW='profiles';render();return;}
+  const T={home:vHome,work:vWork,shop:vShop,goals:vGoals,bank:vBank,biz:vBiz,me:vMe}[TAB];
+  a.innerHTML=vTop(p)+T(p);
+  $('nav').innerHTML=vNav(p);
+}
+function go(v){VIEW=v;window.scrollTo(0,0);render();}
+function tab(t){TAB=t;window.scrollTo(0,0);render();}
+function pickP(id){S.cur=id;save();VIEW='game';TAB='home';render();}
+
+function vProfiles(){
+  const ps=S.order.map(id=>S.profiles[id]).filter(Boolean);
+  return `<div class="hero"><div class="logo">💰</div><h1>Мой первый миллион</h1><p>Игра о деньгах, решениях и мечтах — в кыргызских сомах</p></div>
+  <h3 class="sec">Кто играет?</h3>
+  <div class="plist">${ps.map(p=>`<button class="pcard" onclick="pickP('${p.id}')"><div class="av">${p.av}</div><b>${esc(p.name)}</b><small>Неделя ${p.week} · ${fmt(nw(p))}</small></button>`).join('')}
+  <button class="pcard add" onclick="NEWAV=AVATARS[0];go('new')"><div class="av">➕</div><b>Новый игрок</b><small>Старт: 1 000 сом</small></button></div>
+  <button class="btn ghost wide" onclick="parentEnter()">👨‍👩‍👧 Родительский кабинет</button>
+  <p class="mut" style="text-align:center;font-size:13px;margin-top:14px">Прогресс сохраняется на этом устройстве.</p>`;
+}
+function vNew(){
+  return `<div class="hero" style="padding-top:14px"><div class="logo">${NEWAV}</div><h2>Новый игрок</h2></div>
+  <div class="card"><label class="mut">Как тебя зовут?</label><input id="nm" class="inp" maxlength="20" placeholder="Имя" style="margin-top:6px">
+  <p class="mut" style="margin-top:14px">Выбери героя:</p>
+  <div class="avs">${AVATARS.map(a=>`<button class="${a===NEWAV?'on':''}" onclick="NEWAV='${a}';const v=$('nm').value;render();$('nm').value=v">${a}</button>`).join('')}</div>
+  <button class="btn wide" onclick="createP()">Начать игру 🚀</button></div>
+  <button class="btn ghost wide" onclick="go('profiles')">← Назад</button>`;
+}
+function createP(){
+  const n=($('nm').value||'').trim();if(!n){toast('Напиши своё имя');return;}
+  const p=newProfile(n,NEWAV);S.profiles[p.id]=p;S.order.push(p.id);S.cur=p.id;save();VIEW='game';TAB='home';render();
+  modal(`<div class="celebrate"><span class="e">${p.av}</span><h2>Привет, ${esc(n)}!</h2></div>
+  <p>У тебя <b>1 000 сом</b>. Каждая неделя в игре — это:</p>
+  <div class="rl"><span>🎲 Ситуация недели — прими решение</span></div>
+  <div class="rl"><span>🧠 Вопрос недели — +50 сом за верный ответ</span></div>
+  <div class="rl"><span>💪 До 3 домашних дел — заработок</span></div>
+  <div class="rl"><span>▶ «Завершить неделю» — карманные деньги и прибыль</span></div>
+  <p style="margin:12px 0">Копи на мечты 🎯, клади деньги в банк 🏦, открывай бизнес 🏪. Главная цель — <b>капитал 1 000 000 сом</b>.</p>
+  <p class="lesson good">Но важнее миллиона — научиться принимать разумные решения!</p>
+  <button class="btn wide" style="margin-top:14px" onclick="closeModal()">Поехали!</button>`);
+}
+function vTop(p){
+  const L=lvl(p),l=LEVELS[L],nx=LEVELS[L+1];
+  const pr=nx?Math.round((p.xp-l[0])/(nx[0]-l[0])*100):100;
+  const n=nw(p),mp=Math.max(0,Math.min(100,n/1e6*100));
+  return `<div class="top">
+   <div class="row"><div class="av">${p.av}</div><div style="flex:1;min-width:0"><b style="font-size:18px">${esc(p.name)}</b><br><small>${l[2]} ${l[1]} · уровень ${L+1} · неделя ${p.week}</small></div></div>
+   <div class="cap">${fmt(n)}</div><small>капитал</small>
+   <div class="chips"><span class="chip">💵 ${fmt(p.cash)}</span><span class="chip">🏦 ${fmt(p.bank+depSum(p))}</span><span class="chip">🎯 ${fmt(goalsSum(p))}</span><span class="chip">🏪 ${p.biz.length}</span>${p.loan?`<span class="chip">💸 долг ${fmt(p.loan.left*p.loan.pay)}</span>`:''}</div>
+   <div class="goalm">До миллиона: ${mp<0.1?mp.toFixed(2):mp.toFixed(1)}%<div class="bar" style="margin-top:4px"><i style="width:${Math.max(1,mp)}%"></i></div></div>
+   <div class="goalm">Опыт: ${p.xp}${nx?' / '+nx[0]:''}<div class="bar" style="margin-top:4px"><i style="width:${pr}%"></i></div></div>
+  </div>`;
+}
+function vNav(p){
+  const tabs=[['home','🏠','Неделя',!p.ev.done||p.quiz.ans===null],['work','💪','Заработок',p.chores.length<MAX_CHORES||p.ptasks.some(t=>t.status==='open')],['shop','🛒','Магазин'],['goals','🎯','Цели'],['bank','🏦','Банк'],['biz','🏪','Бизнес'],['me','🏅','Я']];
+  return `<div class="nav"><div class="in">${tabs.map(t=>`<button class="${TAB===t[0]?'on':''}" onclick="tab('${t[0]}')"><span>${t[1]}</span>${t[2]}${t[3]?'<i class="dot"></i>':''}</button>`).join('')}</div></div>`;
+}
+function vHome(p){
+  const e=EVM[p.ev.id],txt=typeof e.text==='function'?e.text(p):e.text;
+  let ev;
+  if(!p.ev.done){
+    ev=`<div class="card"><div class="evh"><span class="big">${e.e}</span><div><span class="tag">Ситуация недели</span><h3 style="margin-top:4px">${e.title}</h3></div></div><p>${txt}</p>
+    <div class="chs">${e.ch.map((c,i)=>{const dis=c.m<0&&!c.must&&p.cash<-c.m;return `<button class="ch ${dis?'dis':''}" onclick="choose(${i})">${c.t}${dis?' <small>— не хватает денег</small>':''}${c.must?' <small>· обязательный расход</small>':''}</button>`;}).join('')}</div></div>`;
+  }else{
+    const c=e.ch[p.ev.res.c];
+    ev=`<div class="card"><div class="evh"><span class="big">${e.e}</span><div><span class="tag">Ситуация недели ✔</span><h3 style="margin-top:4px">${e.title}</h3></div></div>
+    <p>Твой выбор: <b>${c.t}</b></p>${p.ev.res.msg?`<p style="margin-top:6px">${p.ev.res.msg}</p>`:''}
+    ${c.w===true?'<p class="verdict ok">✅ Разумное решение!</p>':c.w===false?'<p class="verdict no">🤔 Можно было лучше</p>':''}
+    <div class="lesson ${c.w===true?'good':c.w===false?'bad':''}">💡 ${c.l}</div></div>`;
+  }
+  const q=QUIZ[p.quiz.i],a=p.quiz.ans;
+  const qz=`<div class="card"><span class="tag" style="background:#E1ECFA;color:#2C5A8C">🧠 Вопрос недели · +50 сом</span><h3 style="margin:8px 0 2px">${q[0]}</h3>
+  ${q[1].map((o,k)=>`<button class="qopt ${a!==null&&k===q[2]?'right':''} ${a===k&&k!==q[2]?'wrong':''}" ${a!==null?'disabled':''} onclick="answer(${k})">${o}</button>`).join('')}
+  ${a!==null?`<p class="verdict ${a===q[2]?'ok':'no'}">${a===q[2]?'✅ Верно!':'❌ Неверно'}</p><div class="lesson">💡 ${q[3]}</div>`:''}</div>`;
+  const mood=p.mood>=70?'😄':p.mood>=40?'🙂':p.mood>=25?'😐':'😟';
+  return `<div class="checks">
+   <div class="check"><b>${p.ev.done?'✅':'🎲'}</b>Ситуация</div>
+   <div class="check"><b>${p.quiz.ans!==null?'✅':'🧠'}</b>Вопрос</div>
+   <div class="check" onclick="tab('work')"><b>${p.chores.length}/${MAX_CHORES}</b>Дела</div>
+   <div class="check"><b>${mood}</b>Настроение ${p.mood}</div></div>
+  ${p.mood<30?'<div class="info">😟 Настроение низкое: за дела платят на 30% меньше. Порадуй себя покупкой в магазине или выбором в ситуации недели.</div>':''}
+  ${ev}${qz}
+  <button class="btn wide endw" onclick="endWeek()">Завершить неделю ${p.week} ▶</button>
+  <p class="mut" style="text-align:center;font-size:13px;margin-top:8px">В конце недели: карманные деньги ${fmt(p.pocket)}${p.biz.length?', прибыль бизнеса':''}${p.bank>0?', проценты (каждые 4 недели)':''}</p>`;
+}
+function vWork(p){
+  const k=p.mood<30?0.7:1;
+  const pt=p.ptasks.filter(t=>t.status!=='approved');
+  return `<h2>💪 Заработок</h2>
+  <div class="info">Выбери до ${MAX_CHORES} дел в неделю. Деньги не появляются из ниоткуда — их зарабатывают трудом.</div>
+  <div class="grid2">${CHORES.map(c=>{const d=p.chores.includes(c[0]);return `<button class="chore ${d?'done':''}" onclick="doChore('${c[0]}')"><span class="e">${c[1]}</span><span><b>${c[2]}</b><small>${d?'✅ Сделано':'+'+fmt(Math.round(c[3]*k))}</small></span></button>`;}).join('')}</div>
+  <h3 class="sec">🏠 Задания от родителей</h3>
+  ${pt.length?pt.map(t=>`<div class="card row between"><div><b>${esc(t.title)}</b><br><small>Награда: ${fmt(t.reward)}</small></div>${t.status==='open'?`<button class="btn sm" onclick="ptDone('${t.id}')">Я сделал!</button>`:'<span class="tag">⏳ ждёт проверки</span>'}</div>`).join(''):'<div class="card mut">Пока заданий нет. Родители могут добавить настоящие задания в родительском кабинете.</div>'}`;
+}
+function vShop(p){
+  const it=SHOP.find(x=>x[0]===p.disc.id);
+  return `<h2>🛒 Магазин</h2>
+  <div class="banner"><b>🔥 Скидка недели −${p.disc.pct}%:</b> ${it[1]} ${it[2]}<br><small>Спроси себя: мне это правда нужно — или просто скидка красивая?</small></div>
+  <div class="seg" style="margin-bottom:12px"><span class="tag need">Нужно</span><span class="tag want">Хочу</span><span class="tag gift">Подарок</span><span class="tag grow">Развитие</span></div>
+  <div class="grid2 m3">${SHOP.map(x=>{const pr=price(p,x),sale=pr<x[3];return `<div class="item"><div class="row between"><span class="e">${x[1]}</span>${sale?`<span class="sale">−${p.disc.pct}%</span>`:''}</div><b>${x[2]}</b><span class="tag ${x[4]}" style="align-self:flex-start">${TYPE_N[x[4]]}</span><div class="pr">${fmt(pr)}${sale?`<span class="old">${fmt(x[3])}</span>`:''}</div>
+   <div class="row"><button class="btn sm ${p.cash<pr?'dis':''}" style="flex:1" onclick="buy('${x[0]}')">Купить</button><button class="btn sm ghost" onclick="goalFromShop('${x[0]}')" title="Сделать целью">🎯</button></div></div>`;}).join('')}</div>`;
+}
+function vGoals(p){
+  const act=p.goals.filter(g=>!g.done),done=p.goals.filter(g=>g.done);
+  return `<h2>🎯 Мои цели</h2>
+  <div class="card"><b>🐷 Автокопилка</b><p class="mut" style="font-size:14px;margin:4px 0 10px">Какую часть карманных денег откладывать на первую цель автоматически?</p>
+  <div class="seg">${[0,10,20,30,50].map(v=>`<button class="${p.auto===v?'on':''}" onclick="setAuto(${v})">${v?v+'%':'Выкл'}</button>`).join('')}</div></div>
+  ${act.length?act.map(g=>{const pr=Math.min(100,Math.round(g.saved/g.target*100));const left=g.target-g.saved;const wk=left>0&&p.pocket>0?Math.ceil(left/p.pocket):0;return `<div class="card"><div class="row"><span class="big">${g.e}</span><div style="flex:1"><b>${esc(g.n)}</b><br><small>${fmt(g.saved)} из ${fmt(g.target)}</small></div><button class="btn sm ghost" onclick="goalDel('${g.id}')">✕</button></div>
+   <div class="bar teal" style="margin:10px 0"><i style="width:${pr}%"></i></div>
+   <small>${left>0?`Осталось ${fmt(left)}${wk?` · если откладывать все карманные — ~${wk} нед.`:''}`:'🎉 Накоплено! Можно покупать'}</small>
+   <div class="row" style="margin-top:10px">${left>0?`<button class="btn sm" style="flex:1" onclick="goalPut('${g.id}')">Положить</button>`:`<button class="btn sm sun" style="flex:1" onclick="goalBuy('${g.id}')">🎉 Купить!</button>`}<button class="btn sm ghost" style="flex:1" onclick="goalTake('${g.id}')">Забрать</button></div></div>`;}).join(''):'<div class="info">Целей пока нет. Создай свою или нажми 🎯 у товара в магазине.</div>'}
+  <div class="card"><b>➕ Новая цель</b>
+   <div class="row" style="margin-top:10px"><select id="gE" class="inp" style="width:80px">${['⭐','🚲','📱','🎮','✈️','🐎','🎁','🏠','🎸','⚽'].map(e=>`<option>${e}</option>`).join('')}</select><input id="gN" class="inp" maxlength="30" placeholder="На что копишь?"></div>
+   <input id="gT" class="inp" type="number" inputmode="numeric" placeholder="Сколько стоит (сом)" style="margin:10px 0">
+   <button class="btn wide" onclick="addGoal()">Создать цель</button></div>
+  ${done.length?`<h3 class="sec">✅ Сбывшиеся мечты</h3><div class="card">${done.map(g=>`<div class="logl"><span>${g.e} ${esc(g.n)}</span><b>${fmt(g.target)}</b></div>`).join('')}</div>`:''}`;
+}
+function vBank(p){
+  const nxt=(4-p.week%4)%4+1;
+  return `<h2>🏦 Банк</h2>
+  <div class="info">Банк платит тебе <b>проценты</b> за то, что твои деньги лежат у него. Чем дольше срок — тем выше процент.</div>
+  <div class="card"><div class="row between"><div><b>Накопительный счёт</b><br><small>+1% каждые 4 недели (≈12% в год) · снять можно в любой момент</small></div></div>
+   <div class="cap" style="font-size:26px;margin:8px 0">${fmt(p.bank)}</div>
+   <small>${p.bank>0?`Следующие проценты ${nxt===1?'в конце этой недели':'через '+nxt+' нед.'}: ≈ +${fmt(Math.round(p.bank*SAVE_RATE))}`:'Положи деньги — и они начнут расти'}</small>
+   <div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onclick="bankPut()">Положить</button><button class="btn ghost" style="flex:1" onclick="bankTake()">Снять</button></div></div>
+  <h3 class="sec">🔒 Срочные вклады</h3>
+  <div class="grid3">${DEPS.map(d=>`<div class="item" style="text-align:center"><b>${d[2]} недель</b><div class="pr pos">+${(d[3]*100).toFixed(1).replace('.',',')}%</div><small>с 1 000 сом: +${fmt(1000*d[3])}</small><button class="btn sm" onclick="openDep('${d[0]}')">Открыть</button></div>`).join('')}</div>
+  <p class="mut" style="font-size:13px;margin:8px 4px 14px">Если закрыть вклад раньше срока — проценты сгорят.</p>
+  ${p.deps.length?p.deps.map(d=>`<div class="card"><div class="row between"><div><b>${d.n}</b><br><small>${fmt(d.a)} → ${fmt(d.a*(1+d.r))} · осталось ${d.left} нед.</small></div><button class="btn sm ghost" onclick="closeDep('${d.id}')">Закрыть</button></div><div class="bar teal" style="margin-top:10px"><i style="width:${Math.round((d.total-d.left)/d.total*100)}%"></i></div></div>`).join(''):''}
+  ${p.loan?`<div class="card" style="border:2px solid var(--red)"><b>💸 Микрозайм</b><p>Осталось ${p.loan.left} платежей по ${fmt(p.loan.pay)}. Всего: ${fmt(p.loan.left*p.loan.pay)}</p></div>`:''}
+  <div class="card"><b>📊 Всего заработано на процентах:</b> <span class="pos">${fmt(p.st.interest)}</span></div>`;
+}
+function vBiz(p){
+  const L=lvl(p)+1;
+  const own=p.biz.map((b,i)=>{const d=BIZM[b.id];const c=upCost(b);return `<div class="card pk"><div class="row"><span class="big">${d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>Уровень ${b.lv}/${BIZ_MAXLV} · ${b.weeks} нед. · прибыль за всё время <span class="${b.total>=0?'pos':'neg'}">${sgn(b.total)}</span></small></div></div>
+   <p style="margin:8px 0;font-size:14px">Прошлая неделя: <b class="${b.last>=0?'pos':'neg'}">${sgn(b.last)}</b>${b.bad?` <small>(${b.bad})</small>`:''}<br><small>Ожидаемо: ${fmt(d[4]*(1+BIZ_UP*(b.lv-1)))} – ${fmt(d[5]*(1+BIZ_UP*(b.lv-1)))} в неделю</small></p>
+   <div class="row">${b.lv<BIZ_MAXLV?`<button class="btn sm org ${p.cash<c?'dis':''}" style="flex:1" onclick="upBiz(${i})">⬆️ Улучшить за ${fmt(c)}</button>`:'<span class="tag" style="flex:1;text-align:center">⭐ Максимальный уровень</span>'}<button class="btn sm ghost" onclick="sellBiz(${i})">Продать</button></div></div>`;}).join('');
+  const av=BIZ.filter(d=>!p.biz.some(b=>b.id===d[0])).map(d=>{const lock=L<d[6];return `<div class="card ${lock?'lock':''}"><div class="row"><span class="big">${lock?'🔒':d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>${d[7]}</small></div></div>
+   <p style="margin:8px 0;font-size:14px">Вложение: <b>${fmt(d[3])}</b> · прибыль ≈ ${fmt(d[4])}–${fmt(d[5])}/нед.<br><small>Окупится примерно за ${Math.ceil(d[3]/((d[4]+d[5])/2))} нед.</small></p>
+   ${lock?`<span class="tag">Откроется на уровне ${d[6]}</span>`:`<button class="btn sm wide ${p.cash<d[3]?'dis':''}" onclick="buyBiz('${d[0]}')">Открыть бизнес</button>`}</div>`;}).join('');
+  return `<h2>🏪 Мой бизнес</h2>
+  <div class="info">Бизнес приносит прибыль каждую неделю, но иногда бывают <b>убытки</b>. В капитале бизнес считается по цене продажи — ${BIZ_SELL*100}% от вложенного. Это и есть риск предпринимателя.</div>
+  ${own||''}${av?`<h3 class="sec">Можно открыть</h3>${av}`:''}`;
+}
+function vMe(p){
+  const st=p.st;
+  return `<h2>🏅 Мои успехи</h2>
+  <div class="grid3" style="margin-bottom:14px">
+   <div class="stat"><b>${wisePct(st)}%</b><small>разумных решений</small></div>
+   <div class="stat"><b>${st.qt?Math.round(st.qc/st.qt*100):0}%</b><small>верных ответов</small></div>
+   <div class="stat"><b>${st.ch}</b><small>дел сделано</small></div>
+   <div class="stat"><b>${st.resist}</b><small>отказов от лишнего</small></div>
+   <div class="stat"><b>${st.imp}</b><small>импульсивных покупок</small></div>
+   <div class="stat"><b>${fmt(st.interest)}</b><small>процентов получено</small></div></div>
+  <h3 class="sec">Достижения ${p.ach.length}/${ACH.length}</h3>
+  <div class="grid3">${ACH.map(a=>`<div class="ach ${p.ach.includes(a[0])?'':'off'}"><span class="e">${a[1]}</span><b>${a[2]}</b>${a[3]}</div>`).join('')}</div>
+  <h3 class="sec">📒 Журнал денег</h3>
+  <div class="card">${p.log.slice(0,30).map(l=>`<div class="logl"><span><small>Нед. ${l.w}</small> ${esc(l.t)}</span>${l.a?`<b class="${l.a>0?'pos':'neg'}">${sgn(l.a)}</b>`:''}</div>`).join('')}</div>
+  <button class="btn wide sun" onclick="showReport()">📤 Отправить отчёт родителям</button>
+  <button class="btn wide ghost" style="margin-top:10px" onclick="S.cur=null;save();go('profiles')">🔄 Сменить игрока</button>`;
+}
+
+/* =================== ОТЧЁТ И РОДИТЕЛИ =================== */
+function summ(p){return {id:p.id,n:p.name,a:p.av,w:p.week,nw:nw(p),xp:p.xp,cash:p.cash,bank:p.bank+depSum(p),st:p.st,ach:p.ach.slice(),biz:p.biz.map(b=>[BIZM[b.id][1],BIZM[b.id][2],b.lv]),
+  goals:p.goals.map(g=>[g.e,g.n,g.saved,g.target,g.done?1:0]),h:p.hist.slice(-52),log:p.log.slice(0,12),loan:p.loan?p.loan.left*p.loan.pay:0,mood:p.mood,t:Date.now()};}
+function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
+function b64d(s){return decodeURIComponent(escape(atob(s)));}
+function showReport(){
+  const code='МПМ:'+b64e(JSON.stringify(summ(P())));
+  modal(`<h2>📤 Отчёт для родителей</h2><p class="mut" style="margin-bottom:10px">Скопируй код и отправь родителю в WhatsApp или Telegram. Родитель вставит его в родительском кабинете.</p>
+  <textarea id="rc" class="inp" readonly>${code}</textarea>
+  <div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onclick="copyCode()">📋 Скопировать</button>${navigator.share?'<button class="btn sun" style="flex:1" onclick="shareCode()">📲 Поделиться</button>':''}</div>
+  <button class="btn ghost wide" style="margin-top:10px" onclick="closeModal()">Закрыть</button>`);
+}
+function copyCode(){const t=$('rc');t.select();t.setSelectionRange(0,1e6);let ok=false;try{ok=document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(()=>toast('Скопировано ✅'),()=>toast(ok?'Скопировано ✅':'Выдели текст и скопируй вручную'));else toast(ok?'Скопировано ✅':'Выдели текст и скопируй вручную');}
+function shareCode(){navigator.share({title:'Мой первый миллион — отчёт',text:$('rc').value}).catch(()=>{});}
+
+function parentEnter(){
+  if(!S.parent.pin){modal(`<h2>👨‍👩‍👧 Родительский кабинет</h2><p class="mut">Придумайте PIN-код из 4 цифр, чтобы дети не заходили сюда.</p><input id="pin" class="inp pin" type="password" inputmode="numeric" maxlength="4" style="margin:14px 0"><button class="btn wide" onclick="setPin()">Сохранить</button>`);return;}
+  modal(`<h2>👨‍👩‍👧 Родительский кабинет</h2><p class="mut">Введите PIN-код</p><input id="pin" class="inp pin" type="password" inputmode="numeric" maxlength="4" style="margin:14px 0" onkeyup="if(this.value.length===4)checkPin()"><button class="btn wide" onclick="checkPin()">Войти</button>`);
+  setTimeout(()=>{const i=$('pin');if(i)i.focus();},50);
+}
+function setPin(){const v=$('pin').value;if(!/^\d{4}$/.test(v)){toast('Нужно ровно 4 цифры');return;}S.parent.pin=v;save();closeModal();PARENT_OK=true;go('parent');}
+function checkPin(){if($('pin').value===S.parent.pin){closeModal();PARENT_OK=true;go('parent');}else toast('Неверный PIN');}
+function spark(h){
+  if(!h||h.length<2)return '';
+  const mx=Math.max(...h),mn=Math.min(...h),W=300,H=60,r=mx-mn||1;
+  const pts=h.map((v,i)=>(i/(h.length-1)*W).toFixed(1)+','+(H-4-(v-mn)/r*(H-8)).toFixed(1)).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#1F9E8F" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function pCard(s,p){
+  const st=s.st,wp=wisePct(st),tot=st.wise+st.unwise;
+  const L=(()=>{let i=0;LEVELS.forEach((l,k)=>{if(s.xp>=l[0])i=k;});return i;})();
+  const flags=[];
+  if(st.imp>=3)flags.push('🛍 Частые импульсивные покупки ('+st.imp+') — стоит обсудить разницу «нужно/хочу»');
+  if(s.loan)flags.push('💸 Взял микрозайм в игре — хороший повод поговорить о кредитах');
+  if(st.scam>0)flags.push('🛡 Распознал мошенников '+st.scam+' раз(а)');
+  if(tot>=5&&wp>=75)flags.push('🌟 Отличное финансовое мышление');
+  return `<div class="card"><div class="row"><span class="big">${s.a}</span><div style="flex:1"><b style="font-size:18px">${esc(s.n)}</b><br><small>${LEVELS[L][2]} ${LEVELS[L][1]} · неделя ${s.w} · ${p?'на этом устройстве':'отчёт от '+new Date(s.t).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small></div></div>
+  <div class="cap" style="font-size:24px;margin:10px 0 0">${fmt(s.nw)}</div><small>капитал · наличные ${fmt(s.cash)} · банк ${fmt(s.bank)}</small>
+  ${spark(s.h)}
+  <div class="grid3" style="margin:10px 0">
+   <div class="stat"><b>${tot?wp+'%':'—'}</b><small>разумных решений (${st.wise}/${tot})</small></div>
+   <div class="stat"><b>${st.qt?Math.round(st.qc/st.qt*100)+'%':'—'}</b><small>викторина (${st.qc}/${st.qt})</small></div>
+   <div class="stat"><b>${st.ch}</b><small>дел выполнено</small></div>
+   <div class="stat"><b>${st.imp}</b><small>импульсивных покупок</small></div>
+   <div class="stat"><b>${st.resist}</b><small>отказов от лишнего</small></div>
+   <div class="stat"><b>${s.ach.length}/${ACH.length}</b><small>достижений</small></div></div>
+  ${flags.map(f=>`<div class="lesson" style="margin-top:6px;font-size:14px">${f}</div>`).join('')}
+  ${s.goals.length?`<p style="margin-top:10px"><b>Цели:</b> ${s.goals.map(g=>`${g[0]} ${esc(g[1])} ${g[4]?'✅':Math.round(g[2]/g[3]*100)+'%'}`).join(' · ')}</p>`:''}
+  ${s.biz.length?`<p><b>Бизнесы:</b> ${s.biz.map(b=>`${b[0]} ${b[1]} (ур. ${b[2]})`).join(' · ')}</p>`:''}
+  <details style="margin-top:8px"><summary class="mut">Последние операции</summary>${s.log.map(l=>`<div class="logl"><span><small>Нед. ${l.w}</small> ${esc(l.t)}</span>${l.a?`<b class="${l.a>0?'pos':'neg'}">${sgn(l.a)}</b>`:''}</div>`).join('')}</details>
+  ${p?pControls(p):`<button class="btn sm ghost" style="margin-top:10px" onclick="delReport('${s.id}')">Удалить отчёт</button>`}</div>`;
+}
+function pControls(p){
+  const wait=p.ptasks.filter(t=>t.status==='done'),open=p.ptasks.filter(t=>t.status==='open');
+  return `<div style="border-top:2px dashed var(--line);margin-top:12px;padding-top:12px">
+   <b>⚙️ Настройки</b>
+   <div class="row" style="margin:8px 0"><span style="flex:1;font-size:14px">Карманные деньги в неделю:</span><input id="pk_${p.id}" class="inp" type="number" inputmode="numeric" value="${p.pocket}" style="width:110px;padding:8px"><button class="btn sm" onclick="setPocket('${p.id}')">OK</button></div>
+   <b style="display:block;margin-top:10px">🏠 Настоящие задания</b><small>Ребёнок отмечает выполнение, вы подтверждаете — и деньги начисляются в игре.</small>
+   ${wait.map(t=>`<div class="row between" style="margin-top:8px;background:#FFF1D6;padding:8px;border-radius:12px"><span>⏳ ${esc(t.title)} · ${fmt(t.reward)}</span><span class="row"><button class="btn sm" onclick="ptApprove('${p.id}','${t.id}')">✓</button><button class="btn sm ghost" onclick="ptReject('${p.id}','${t.id}')">✕</button></span></div>`).join('')}
+   ${open.map(t=>`<div class="row between" style="margin-top:6px;font-size:14px"><span>📌 ${esc(t.title)} · ${fmt(t.reward)}</span><button class="btn sm ghost" onclick="ptDel('${p.id}','${t.id}')">Удалить</button></div>`).join('')}
+   <div class="row" style="margin-top:8px"><input id="tt_${p.id}" class="inp" placeholder="Например: выучить стих" style="padding:9px"><input id="tr_${p.id}" class="inp" type="number" inputmode="numeric" placeholder="сом" style="width:90px;padding:9px"><button class="btn sm" onclick="ptAdd('${p.id}')">+</button></div>
+   <button class="btn sm red" style="margin-top:12px" onclick="delProfile('${p.id}')">Удалить игрока</button></div>`;
+}
+function vParent(){
+  if(!PARENT_OK){VIEW='profiles';return vProfiles();}
+  const loc=S.order.map(id=>S.profiles[id]).filter(Boolean);
+  const reps=Object.values(S.reports).sort((a,b)=>b.t-a.t);
+  return `<div class="row between" style="margin:6px 0 14px"><h2 style="margin:0">👨‍👩‍👧 Родительский кабинет</h2><button class="btn sm ghost" onclick="PARENT_OK=false;go('profiles')">Выйти</button></div>
+  <div class="info">Здесь видно, <b>как</b> ребёнок принимает решения, а не только сколько «заработал». Если дети играют на своих телефонах — попросите их нажать «Отправить отчёт родителям» (вкладка «Я») и вставьте код ниже.</div>
+  <h3 class="sec">На этом устройстве</h3>
+  ${loc.length?loc.map(p=>pCard(summ(p),p)).join(''):'<div class="card mut">Игроков на этом устройстве нет.</div>'}
+  <h3 class="sec">Отчёты с других устройств</h3>
+  ${reps.length?reps.map(s=>pCard(s,null)).join(''):'<div class="card mut">Отчётов пока нет.</div>'}
+  <div class="card"><b>📥 Добавить отчёт по коду</b><textarea id="imp" class="inp" placeholder="Вставьте код, начинающийся с МПМ:" style="margin:10px 0"></textarea><button class="btn wide" onclick="importReport()">Добавить</button></div>
+  <button class="btn ghost wide" onclick="changePin()">🔑 Сменить PIN</button>`;
+}
+function importReport(){
+  let v=($('imp').value||'').trim();const m=v.match(/МПМ:([A-Za-z0-9+/=]+)/);
+  if(!m){toast('Код не распознан');return;}
+  try{const s=JSON.parse(b64d(m[1]));if(!s.id||!s.st)throw 0;S.reports[s.id]=s;save();toast('Отчёт игрока '+s.n+' добавлен ✅');render();}catch(e){toast('Код повреждён — попросите отправить заново');}
+}
+function delReport(id){askConfirm('Удалить этот отчёт?',()=>{delete S.reports[id];save();render();});}
+function setPocket(id){const v=Math.max(0,Math.min(100000,Math.floor(Number($('pk_'+id).value)||0)));S.profiles[id].pocket=v;save();toast('Карманные деньги: '+fmt(v)+' в неделю');render();}
+function ptAdd(id){const t=($('tt_'+id).value||'').trim(),r=Math.floor(Number($('tr_'+id).value));if(!t||!(r>0)){toast('Введите задание и награду');return;}S.profiles[id].ptasks.push({id:uid(),title:t,reward:r,status:'open'});save();toast('Задание добавлено');render();}
+function ptApprove(pid,tid){const p=S.profiles[pid],t=p.ptasks.find(x=>x.id===tid);t.status='approved';earn(p,t.reward,'🏠 Задание родителей: '+t.title);p.st.real++;p.xp+=30;p.ptasks=p.ptasks.filter(x=>x.status!=='approved').concat([]);save();toast('Подтверждено, '+fmt(t.reward)+' начислено');render();}
+function ptReject(pid,tid){const t=S.profiles[pid].ptasks.find(x=>x.id===tid);t.status='open';save();render();}
+function ptDel(pid,tid){const p=S.profiles[pid];p.ptasks=p.ptasks.filter(x=>x.id!==tid);save();render();}
+function delProfile(id){askConfirm('Удалить игрока «'+S.profiles[id].name+'» и весь его прогресс?',()=>{delete S.profiles[id];S.order=S.order.filter(x=>x!==id);if(S.cur===id)S.cur=null;save();render();});}
+function changePin(){modal(`<h2>🔑 Новый PIN</h2><input id="pin" class="inp pin" type="password" inputmode="numeric" maxlength="4" style="margin:14px 0"><button class="btn wide" onclick="setPin()">Сохранить</button>`);}
+
+/* =================== СТАРТ =================== */
+if(S.cur&&S.profiles[S.cur]){VIEW='game';}
+render();
+</script>
+</body>
+</html>
