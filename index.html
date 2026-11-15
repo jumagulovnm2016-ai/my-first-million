@@ -137,6 +137,9 @@ textarea.inp{min-height:90px;font-size:12px;font-family:ui-monospace,Menlo,monos
 .sw{width:52px;height:30px;border-radius:99px;background:#D9D3C6;position:relative;transition:.2s;flex:none}
 .sw:after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .sw.on{background:var(--teal)}.sw.on:after{left:25px}
+.mel{background:#FFF7E8;border-radius:16px;padding:10px;text-align:left;box-shadow:inset 0 0 0 2px var(--line);display:flex;flex-direction:column;gap:2px}
+.mel .e{font-size:26px}.mel small{font-size:12px}
+.mel.on{background:#DDF3EF;box-shadow:inset 0 0 0 3px var(--teal)}
 input[type=range]{width:100%;accent-color:var(--teal)}
 </style>
 </head>
@@ -340,11 +343,12 @@ const ACH = [
 /* =================== ХРАНЕНИЕ =================== */
 const KEY='moy_pervyi_million_v1';
 let MEM=null;
-function blank(){return {profiles:{},order:[],parent:{pin:null},reports:{},cur:null,sound:{music:true,sfx:true,vol:60}};}
+function blank(){return {profiles:{},order:[],parent:{pin:null},reports:{},cur:null,sound:{music:true,sfx:true,vol:60,style:'komuz'}};}
 function load(){try{const s=localStorage.getItem(KEY);if(s)return Object.assign(blank(),JSON.parse(s));}catch(e){}return MEM||blank();}
 function save(){MEM=S;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 let S=load();
 if(!S.sound)S.sound={music:true,sfx:true,vol:60};
+if(!S.sound.style)S.sound.style='komuz';
 let VIEW='profiles', TAB='home', PARENT_OK=false, NEWAV=AVATARS[0];
 
 /* =================== УТИЛИТЫ =================== */
@@ -644,36 +648,59 @@ function audioInit(){
   SND.fx.connect(SND.master);SND.master.connect(c.destination);
   return true;
 }
-// Ля минор, пентатоника; аккорды Am – F – C – G, темп 80
-const MUS={prog:[[[57,60,64],45,[9,0,4]],[[53,57,60],41,[5,9,0]],[[55,60,64],48,[0,4,7]],[[55,59,62],43,[7,11,2]]],
+// Мелодии: у каждой свой лад, аккорды, темп и «инструмент»
+const STYLES={
+ komuz:{n:'Комуз',e:'🪕',d:'Спокойная, как щипки струн комуза',bpm:80,inst:'pluck',pad:'long',padG:0.07,bassT:'sine',bassG:0.22,
+  bass:[[0,null,null,null,12,null,null,null],[0,null,null,null,7,null,null,null]],
+  prog:[[[57,60,64],45,[9,0,4]],[[53,57,60],41,[5,9,0]],[[55,60,64],48,[0,4,7]],[[55,59,62],43,[7,11,2]]],
   scale:[69,72,74,76,79,81,84,86,88],
-  pats:[[1,0,1,0,1,1,0,0],[1,0,0,1,0,1,0,0],[1,1,0,1,0,0,1,0],[1,0,1,0,0,0,1,0],[1,0,1,1,0,1,0,0]],
-  mi:3,pat:null};
-const STEP=60/80/2;
+  pats:[[1,0,1,0,1,1,0,0],[1,0,0,1,0,1,0,0],[1,1,0,1,0,0,1,0],[1,0,1,0,0,0,1,0],[1,0,1,1,0,1,0,0]]},
+ fun:{n:'Весёлая',e:'🎈',d:'Бодрая мелодия на маримбе',bpm:112,inst:'marimba',pad:'stab',padG:0.05,bassT:'triangle',bassG:0.2,
+  bass:[[0,null,7,null,0,null,7,null],[0,null,7,null,12,null,7,null]],
+  prog:[[[60,64,67],48,[0,4,7]],[[59,62,67],43,[7,11,2]],[[57,60,64],45,[9,0,4]],[[57,60,65],41,[5,9,0]]],
+  scale:[72,74,76,79,81,84,86,88,91],
+  pats:[[1,1,0,1,1,0,1,0],[1,0,1,1,0,1,1,0],[1,1,1,0,1,0,1,0],[1,0,1,0,1,1,1,0]]},
+ calm:{n:'Музыкальная шкатулка',e:'🌙',d:'Тихая и нежная, как колокольчики',bpm:66,inst:'bell',pad:'long',padG:0.055,bassT:'sine',bassG:0.15,
+  bass:[[0,null,null,null,null,null,null,null],[0,null,null,null,7,null,null,null]],
+  prog:[[[53,57,60],41,[5,9,0]],[[50,53,57],38,[2,5,9]],[[50,53,58],46,[10,2,5]],[[52,55,60],48,[0,4,7]]],
+  scale:[77,79,81,84,86,89,91,93],
+  pats:[[1,0,0,0,1,0,0,0],[1,0,0,1,0,0,1,0],[1,0,0,0,1,0,1,0],[1,0,1,0,0,0,0,0]]},
+ adv:{n:'Приключение',e:'🎮',d:'Как в старых видеоиграх (8-бит)',bpm:100,inst:'chip',pad:'arp',padG:0.03,bassT:'triangle',bassG:0.22,
+  bass:[[0,null,12,null,0,null,12,null],[0,null,0,12,0,null,12,null]],
+  prog:[[[62,65,69],38,[2,5,9]],[[58,62,65],46,[10,2,5]],[[60,64,67],48,[0,4,7]],[[61,64,69],45,[9,1,4]]],
+  scale:[74,76,77,79,81,84,86,88,89],
+  pats:[[1,1,0,1,0,1,1,0],[1,0,1,0,1,0,1,1],[1,1,1,0,1,1,0,0],[1,0,1,1,1,0,1,0]]}
+};
+const MUS={mi:3,pat:null};
+function sty(){return STYLES[S.sound.style]||STYLES.komuz;}
 function tone(f,t,d,type,g,att,lp,dest){
   const c=SND.ctx,o=c.createOscillator(),gn=c.createGain(),fl=c.createBiquadFilter();
   o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp;
   gn.gain.setValueAtTime(0.0001,t);gn.gain.linearRampToValueAtTime(g,t+att);gn.gain.exponentialRampToValueAtTime(0.0001,t+d);
   o.connect(fl);fl.connect(gn);gn.connect(dest||SND.mus);o.start(t);o.stop(t+d+0.05);
 }
-function pluck(f,t){tone(f,t,1.2,'triangle',0.14,0.008,2400);tone(f*2,t,0.45,'sine',0.03,0.005,4000);} // похоже на щипок струны комуза
+function inst(k,f,t){
+  if(k==='pluck'){tone(f,t,1.2,'triangle',0.14,0.008,2400);tone(f*2,t,0.45,'sine',0.03,0.005,4000);}       // струна комуза
+  else if(k==='marimba'){tone(f,t,0.45,'sine',0.17,0.004,6000);tone(f*4,t,0.07,'sine',0.04,0.002,9000);}   // маримба
+  else if(k==='bell'){tone(f,t,2.4,'sine',0.11,0.01,6000);tone(f*2.76,t,0.8,'sine',0.03,0.005,9000);}      // колокольчик
+  else {tone(f,t,0.26,'square',0.055,0.004,2400);}                                                         // 8-бит
+}
 function playStep(s,t){
-  const bar=Math.floor(s/8),st=s%8,ch=MUS.prog[bar%4],phrase=Math.floor(bar/4)%4;
-  if(st===0){
-    ch[0].forEach(n=>tone(mtof(n),t,STEP*8+1.6,'triangle',0.07,0.6,1000));
-    tone(mtof(ch[1]),t,STEP*4,'sine',0.22,0.02,400);
-    MUS.pat=pick(MUS.pats);
-  }
-  if(st===4)tone(mtof(ch[1]+(phrase%2?7:12)),t,STEP*4,'sine',0.14,0.02,500);
+  const X=sty(),bar=Math.floor(s/8),st=s%8,ch=X.prog[bar%4],phrase=Math.floor(bar/4)%4,beat=60/X.bpm/2;
+  if(X.pad==='long'&&st===0)ch[0].forEach(n=>tone(mtof(n),t,beat*8+1.6,'triangle',X.padG,0.6,1000));
+  if(X.pad==='stab'&&(st===2||st===6))ch[0].forEach(n=>tone(mtof(n),t,beat*1.1,'triangle',X.padG,0.01,1800));
+  if(X.pad==='arp')tone(mtof(ch[0][[0,1,2,1][st%4]]-12),t,beat*0.9,'square',X.padG,0.005,800);
+  const bp=X.bass[phrase%2];
+  if(bp[st]!==null){let k=st+1;while(k<8&&bp[k]===null)k++;tone(mtof(ch[1]+bp[st]),t,beat*(k-st)*0.95,X.bassT,X.bassG,0.02,500);}
+  if(st===0)MUS.pat=pick(X.pats);
   if(phrase===3&&bar%4>=2)return; // передышка в мелодии
   if(!MUS.pat||!MUS.pat[st])return;
-  MUS.mi=Math.max(0,Math.min(MUS.scale.length-1,MUS.mi+pick([-2,-1,-1,0,1,1,2])));
-  if(st===0||st===4){ // на сильную долю — звук аккорда
-    let best=MUS.mi,bd=99;MUS.scale.forEach((n,i)=>{if(ch[2].includes(n%12)&&Math.abs(i-MUS.mi)<bd){bd=Math.abs(i-MUS.mi);best=i;}});MUS.mi=best;
-  }
-  pluck(mtof(MUS.scale[MUS.mi]),t);
+  const sc=X.scale;
+  MUS.mi=Math.max(0,Math.min(sc.length-1,MUS.mi+pick([-2,-1,-1,0,1,1,2])));
+  if(st===0||st===4){let best=MUS.mi,bd=99;sc.forEach((n,i)=>{if(ch[2].includes(n%12)&&Math.abs(i-MUS.mi)<bd){bd=Math.abs(i-MUS.mi);best=i;}});MUS.mi=best;}
+  inst(X.inst,mtof(sc[MUS.mi]),t);
 }
-function sched(){const c=SND.ctx;while(SND.next<c.currentTime+0.4){playStep(SND.step,SND.next);SND.next+=STEP;SND.step++;}}
+function sched(){const c=SND.ctx;while(SND.next<c.currentTime+0.4){playStep(SND.step,SND.next);SND.next+=60/sty().bpm/2;SND.step++;}}
 function musicStart(){
   if(!audioInit())return;
   const c=SND.ctx;if(c.state!=='running')c.resume();
@@ -694,6 +721,11 @@ function sfx(k){
   const t=c.currentTime+0.02;SFX[k].forEach(([f,dt,d])=>tone(f,t+dt,d,'triangle',0.2,0.01,5000,SND.fx));
 }
 function toggleMusic(){S.sound.music=!S.sound.music;save();if(S.sound.music)musicStart();else musicStop();toast(S.sound.music?'🎵 Музыка включена':'🔇 Музыка выключена');render();}
+function setStyle(k){
+  S.sound.style=k;S.sound.music=true;save();MUS.mi=3;
+  if(SND.ctx&&SND.playing){SND.step=0;SND.next=SND.ctx.currentTime+0.3;}
+  musicStart();render();
+}
 function toggleSfx(){S.sound.sfx=!S.sound.sfx;save();if(S.sound.sfx)sfx('coin');render();}
 function setVol(v){S.sound.vol=+v;save();if(SND.master)SND.master.gain.setTargetAtTime(S.sound.vol/100,SND.ctx.currentTime,0.05);const l=document.getElementById('volv');if(l)l.textContent=v+'%';}
 // браузеры разрешают звук только после касания экрана
@@ -866,6 +898,8 @@ function vMe(p){
   <h3 class="sec">🎵 Звук</h3>
   <div class="card">
    <div class="tgl" onclick="toggleMusic()"><span>🎵 Фоновая музыка</span><span class="sw ${S.sound.music?'on':''}"></span></div>
+   <p style="margin:12px 0 8px"><b>Мелодия</b> <small>— нажми, чтобы послушать</small></p>
+   <div class="grid2">${Object.entries(STYLES).map(([k,x])=>`<button class="mel ${S.sound.style===k&&S.sound.music?'on':''}" onclick="setStyle('${k}')"><span class="e">${x.e}</span><b>${x.n}</b><small>${x.d}</small></button>`).join('')}</div>
    <div class="tgl" onclick="toggleSfx()"><span>🔔 Звуки действий</span><span class="sw ${S.sound.sfx?'on':''}"></span></div>
    <div style="padding-top:12px"><div class="row between"><span>🔊 Громкость</span><b id="volv">${S.sound.vol}%</b></div><input type="range" min="0" max="100" value="${S.sound.vol}" oninput="setVol(this.value)"></div>
   </div>
