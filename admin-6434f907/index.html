@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Админка — Мой первый миллион</title>
+<style>
+:root{--bg:#FFF7E8;--ink:#26283B;--mut:#7B7F98;--teal:#1F9E8F;--red:#E63946;--org:#F4842B;--line:#F1E3C8;--wa:#25A35A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
+.wrap{max-width:640px;margin:0 auto;padding:16px 14px 60px}
+h1{font-size:22px}h2{font-size:18px;margin-bottom:10px}
+.sub{color:var(--mut);font-size:14px;margin:2px 0 14px}
+.card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 4px 16px rgba(38,40,59,.08);margin-bottom:14px}
+label{font-size:13px;color:var(--mut);display:block;margin:10px 0 4px}
+input,textarea,select{width:100%;padding:11px 12px;border-radius:12px;border:2px solid var(--line);font:inherit;outline:none;background:#fff}
+input:focus,textarea:focus{border-color:var(--teal)}
+.row{display:flex;gap:8px;align-items:center}.row>*{min-width:0}
+.btn{display:inline-flex;justify-content:center;align-items:center;gap:6px;padding:11px 14px;border-radius:12px;border:none;font:inherit;font-weight:700;background:var(--teal);color:#fff;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+.btn.red{background:var(--red)}.btn.org{background:var(--org)}.btn.wa{background:var(--wa)}
+.btn.sm{padding:7px 10px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.5}
+.code{font-size:42px;font-weight:800;letter-spacing:.16em;text-align:center;color:var(--teal);margin:4px 0}
+textarea{min-height:140px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#fff;border-radius:14px;padding:10px;text-align:center;box-shadow:0 4px 16px rgba(38,40,59,.06)}.stat b{display:block;font-size:22px}.stat small{color:var(--mut);font-size:12px}
+.lic{border-top:1px dashed var(--line);padding:12px 0}
+.lic:first-child{border-top:none}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:#DDF3EF;color:#0F6B60}
+.tag.off{background:#FFE3E5;color:#B42332}.tag.wait{background:#FFF1D6;color:#9A5B00}
+.dev{font-size:13px;color:var(--mut);margin-top:4px}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mut{color:var(--mut)}
+.toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;z-index:9;max-width:92vw;text-align:center}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <h1>🔑 Админка «Мой первый миллион»</h1>
+ <p class="sub">Доступы покупателей: создание кодов, устройства, блокировка.</p>
+
+ <div id="loginBox" class="card">
+  <h2>Вход администратора</h2>
+  <input id="pass" type="password" placeholder="Пароль администратора" onkeyup="if(event.key==='Enter')enter()">
+  <button class="btn" style="width:100%;margin-top:10px" onclick="enter()">Войти</button>
+  <p class="mut" style="font-size:12px;margin-top:8px">После 8 неверных попыток вход блокируется на 15 минут.</p>
+ </div>
+
+ <div id="app" class="hide">
+  <div class="stats" id="stats"></div>
+
+  <div class="card">
+   <h2>➕ Новый доступ</h2>
+   <label>Логин покупателя</label>
+   <div class="row"><input id="nLogin" placeholder="например: aigerim2026" autocapitalize="none"><button class="btn ghost sm" onclick="suggest()">Придумать</button></div>
+   <div class="row">
+    <div style="flex:1"><label>Устройств</label><select id="nMax"><option>1</option><option>2</option><option>3</option></select></div>
+    <div style="flex:1"><label>Срок, дней (пусто — бессрочно)</label><input id="nDays" type="number" inputmode="numeric" placeholder="∞"></div>
+   </div>
+   <label>Телефон покупателя (для WhatsApp)</label><input id="nPhone" inputmode="tel" placeholder="0700 123 456">
+   <label>Заметка</label><input id="nNote" placeholder="Айгерим, оплата 15.11, 1 500 сом">
+   <button class="btn" style="width:100%;margin-top:12px" onclick="create()">Создать код</button>
+   <div id="made" class="hide" style="margin-top:14px">
+    <div class="code" id="mCode"></div>
+    <textarea id="mMsg" readonly></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn ghost" style="flex:1" onclick="copyMsg()">📋 Скопировать</button><a class="btn wa" style="flex:1" id="mWa" target="_blank" rel="noopener">💬 WhatsApp</a></div>
+   </div>
+  </div>
+
+  <div class="card">
+   <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">📒 Доступы</h2><button class="btn ghost sm" onclick="load()">🔄 Обновить</button></div>
+   <input id="q" placeholder="Поиск: логин, телефон, заметка" oninput="draw()">
+   <div id="list" style="margin-top:8px"></div>
+   <button class="btn ghost sm" style="margin-top:10px" onclick="csv()">Скопировать всё (CSV)</button>
+  </div>
+
+  <div class="card">
+   <h2>🔐 Сменить пароль администратора</h2>
+   <input id="np1" type="password" placeholder="Новый пароль (не короче 8 символов)">
+   <input id="np2" type="password" placeholder="Повторите" style="margin-top:8px">
+   <button class="btn ghost" style="width:100%;margin-top:8px" onclick="setPass()">Сохранить новый пароль</button>
+  </div>
+  <button class="btn ghost" style="width:100%" onclick="quit()">Выйти</button>
+ </div>
+</div>
+<div id="t"></div>
+<script>
+const SB_URL='https://iwqtjglggsrsvdnosrsz.supabase.co', SB_KEY='sb_publishable_4q0i2H-rXAtk5wp7wFOvqw_40dQ-Ewp';
+const GAME_URL='https://jumagulovnm2016-ai.github.io/my-first-million/';
+let PASS='', DATA=[];
+const $=id=>document.getElementById(id);
+function toast(s){$('t').innerHTML='<div class="toast">'+s+'</div>';clearTimeout(window._tt);window._tt=setTimeout(()=>$('t').innerHTML='',2600);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function rpc(fn,args){const r=await fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(args)});
+  if(!r.ok)throw new Error('Ошибка сервера '+r.status);return r.json();}
+async function call(fn,args){try{const r=await rpc(fn,Object.assign({p_pass:PASS},args||{}));if(r&&r.error==='bad_pass'){quit();toast('Неверный пароль (или вход временно заблокирован)');throw 0;}return r;}catch(e){if(e)toast(e.message||'Нет связи с сервером');throw e;}}
+async function enter(){PASS=$('pass').value;if(!PASS)return;try{const r=await rpc('mpm_admin_list',{p_pass:PASS});if(r&&r.error){toast('Неверный пароль (или вход временно заблокирован на 15 мин)');return;}
+  try{sessionStorage.setItem('mpm_admin',PASS);}catch(e){}DATA=r;$('loginBox').classList.add('hide');$('app').classList.remove('hide');draw();}catch(e){toast('Нет связи с сервером');}}
+function quit(){PASS='';try{sessionStorage.removeItem('mpm_admin');}catch(e){}$('app').classList.add('hide');$('loginBox').classList.remove('hide');$('pass').value='';}
+async function load(){try{DATA=await call('mpm_admin_list');draw();}catch(e){}}
+function suggest(){const w=['family','oila','bala','dostuk','miras','umut','aigul','bek'];$('nLogin').value=w[Math.floor(Math.random()*w.length)]+Math.floor(1000+Math.random()*9000);}
+function waNum(p){let d=String(p||'').replace(/\D/g,'');if(!d)return '';if(d.startsWith('0'))d='996'+d.slice(1);else if(d.length===9)d='996'+d;return d;}
+function msgFor(login,code,max){return 'Здравствуйте! Ваш доступ к игре «Мой первый миллион» 💰\n\nСсылка: '+GAME_URL+'\nЛогин: '+login+'\nКод доступа: '+code+'\n\nОткройте ссылку на телефоне или компьютере ребёнка (нужен интернет) и введите логин и код — один раз. '+(max>1?'Код работает на '+max+' устройствах.':'Код работает на одном устройстве — на нём могут играть все дети семьи.')+'\n\nПриятной игры!';}
+async function create(){const login=$('nLogin').value.trim();if(login.replace(/\s/g,'').length<3){toast('Введите логин (от 3 символов)');return;}
+  const days=parseInt($('nDays').value,10),max=parseInt($('nMax').value,10);
+  try{const r=await call('mpm_admin_create',{p_login:login,p_max:max,p_phone:$('nPhone').value.trim()||null,p_note:$('nNote').value.trim()||null,p_days:isNaN(days)?null:days});
+   if(r.error==='login_exists'){toast('Такой логин уже есть — придумайте другой');return;}if(r.error){toast('Ошибка: '+r.error);return;}
+   $('made').classList.remove('hide');$('mCode').textContent=r.code;$('mMsg').value=msgFor(r.login,r.code,max);
+   $('mWa').href='https://wa.me/'+waNum($('nPhone').value)+'?text='+encodeURIComponent($('mMsg').value);
+   toast('Код создан ✅');load();}catch(e){}}
+function copyText(s){const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();
+  if(navigator.clipboard)navigator.clipboard.writeText(s).then(()=>toast('Скопировано ✅'),()=>toast(ok?'Скопировано ✅':'Не удалось скопировать'));else toast(ok?'Скопировано ✅':'Не удалось скопировать');}
+function copyMsg(){copyText($('mMsg').value);}
+function fdate(s){if(!s)return '';const d=new Date(s);return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'2-digit'})+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});}
+function uaShort(u){u=u||'';return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Windows/.test(u)?'Windows':/Mac/.test(u)?'Mac':'устройство';}
+function draw(){
+  const q=($('q').value||'').toLowerCase(),now=Date.now();
+  const act=DATA.filter(x=>x.devices.length>0).length,dev=DATA.reduce((s,x)=>s+x.devices.length,0);
+  $('stats').innerHTML=`<div class="stat"><b>${DATA.length}</b><small>доступов выдано</small></div><div class="stat"><b>${act}</b><small>активировано</small></div><div class="stat"><b>${dev}</b><small>устройств</small></div>`;
+  const L=DATA.filter(x=>!q||[x.login,x.phone,x.note].join(' ').toLowerCase().includes(q));
+  $('list').innerHTML=L.length?L.map(x=>{
+    const exp=x.expires_at&&new Date(x.expires_at).getTime()<now;
+    const st=x.status!=='active'?'<span class="tag off">заблокирован</span>':exp?'<span class="tag off">срок истёк</span>':x.devices.length?'<span class="tag">активен</span>':'<span class="tag wait">не активирован</span>';
+    return `<div class="lic"><div class="row" style="justify-content:space-between"><div><b>${esc(x.login)}</b> · <b style="color:var(--teal);letter-spacing:.08em">${esc(x.code)}</b> ${st}</div></div>
+     <div class="dev">${esc(x.phone||'')}${x.phone&&x.note?' · ':''}${esc(x.note||'')}${x.expires_at?' · до '+fdate(x.expires_at).split(' ')[0]:''} · создан ${fdate(x.created_at).split(' ')[0]}</div>
+     <div class="dev">📱 Устройств: ${x.devices.length} из ${x.max_devices}${x.devices.map(d=>`<br>· ${uaShort(d.ua)} ${esc(d.device.slice(0,4)+'-'+d.device.slice(4))} — активирован ${fdate(d.activated)}, был ${fdate(d.seen)}`).join('')}</div>
+     <div class="acts">
+      <button class="btn ghost sm" onclick="resend(${x.id})">💬 Сообщение</button>
+      ${x.devices.length?`<button class="btn org sm" onclick="resetDev(${x.id})">♻️ Сбросить устройства</button>`:''}
+      <button class="btn ghost sm" onclick="setMax(${x.id},${x.max_devices+1})">＋ устройство</button>
+      ${x.max_devices>1?`<button class="btn ghost sm" onclick="setMax(${x.id},${x.max_devices-1})">− устройство</button>`:''}
+      ${x.status==='active'?`<button class="btn ghost sm" onclick="setStatus(${x.id},'blocked')">⛔ Заблокировать</button>`:`<button class="btn sm" onclick="setStatus(${x.id},'active')">✅ Разблокировать</button>`}
+      <button class="btn red sm" onclick="del(${x.id},'${esc(x.login)}')">Удалить</button>
+     </div></div>`;}).join(''):'<p class="mut" style="padding:8px 0">Пока пусто.</p>';
+}
+function resend(id){const x=DATA.find(v=>v.id===id);const m=msgFor(x.login,x.code,x.max_devices);$('made').classList.remove('hide');$('mCode').textContent=x.code;$('mMsg').value=m;$('mWa').href='https://wa.me/'+waNum(x.phone)+'?text='+encodeURIComponent(m);$('made').scrollIntoView({behavior:'smooth',block:'center'});}
+async function resetDev(id){if(!await ask('Сбросить устройства? Покупатель сможет войти с нового телефона тем же кодом. На старом устройстве игра попросит войти заново.'))return;try{await call('mpm_admin_reset_devices',{p_id:id});toast('Устройства сброшены');load();}catch(e){}}
+async function setMax(id,m){try{await call('mpm_admin_update',{p_id:id,p_max:m});load();}catch(e){}}
+async function setStatus(id,s){try{await call('mpm_admin_update',{p_id:id,p_status:s});toast(s==='active'?'Разблокирован':'Заблокирован');load();}catch(e){}}
+async function del(id,l){if(!await ask('Удалить доступ «'+l+'» навсегда?'))return;try{await call('mpm_admin_delete',{p_id:id});toast('Удалено');load();}catch(e){}}
+function ask(t){return new Promise(res=>{const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:rgba(38,40,59,.5);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px';
+  o.innerHTML='<div class="card" style="max-width:420px;width:100%"><p style="margin-bottom:14px">'+esc(t)+'</p><div class="row"><button class="btn ghost" style="flex:1" id="askN">Нет</button><button class="btn red" style="flex:1" id="askY">Да</button></div></div>';
+  document.body.appendChild(o);o.querySelector('#askN').onclick=()=>{o.remove();res(false);};o.querySelector('#askY').onclick=()=>{o.remove();res(true);};});}
+async function setPass(){const a=$('np1').value,b=$('np2').value;if(a.length<8){toast('Пароль — не короче 8 символов');return;}if(a!==b){toast('Пароли не совпадают');return;}
+  try{const r=await rpc('mpm_admin_set_pass',{p_old:PASS,p_new:a});if(r.error){toast('Ошибка: '+r.error);return;}PASS=a;try{sessionStorage.setItem('mpm_admin',a);}catch(e){}$('np1').value=$('np2').value='';toast('Пароль изменён ✅');}catch(e){toast('Нет связи с сервером');}}
+function csv(){copyText('Логин;Код;Статус;Устройств;Макс;Телефон;Заметка;Создан\n'+DATA.map(x=>[x.login,x.code,x.status,x.devices.length,x.max_devices,x.phone,x.note,fdate(x.created_at)].map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';')).join('\n'));}
+try{const p=sessionStorage.getItem('mpm_admin');if(p){$('pass').value=p;enter();}}catch(e){}
+</script>
+</body>
+</html>
