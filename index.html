@@ -979,9 +979,38 @@ function setVol(v){S.sound.vol=+v;save();if(SND.master)SND.master.gain.setTarget
 document.addEventListener('pointerdown',()=>{if(S.sound.music&&!SND.playing)musicStart();else if(SND.ctx&&SND.ctx.state!=='running'&&!document.hidden)SND.ctx.resume();},true);
 document.addEventListener('visibilitychange',()=>{if(!SND.ctx)return;if(document.hidden)SND.ctx.suspend();else if(S.sound.music||S.sound.sfx)SND.ctx.resume();});
 
+/* =================== ДОСТУП: ЛОГИН И КОД =================== */
+const WA_PHONE='996777228228', WA_SHOW='0777 228 228';
+const _S=['11c5','6f2a','7363','ba71'];
+function _h(str,seed){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}
+function normLogin(s){return String(s||'').trim().toLowerCase().replace(/\s+/g,'').replace(/ё/g,'е');}
+function codeFor(login){let x=normLogin(login)+'#'+_S.join('');for(let r=0;r<7;r++)x=String(_h(x,r*7919+1913));return String(Number(x)%1000000).padStart(6,'0');}
+function authOk(a){return !!(a&&a.login&&normLogin(a.login).length>=3&&String(a.code)===codeFor(a.login));}
+function waLink(text){return 'https://wa.me/'+WA_PHONE+'?text='+encodeURIComponent(text);}
+function vLogin(){
+  return `<div class="hero"><div class="logo">💰</div><h1>Мой первый миллион</h1><p>Игра о деньгах, решениях и мечтах — в кыргызских сомах</p></div>
+  <div class="card"><h3 style="margin-bottom:12px">🔐 Вход</h3>
+   <label class="mut" style="font-size:14px">Логин</label><input id="lg" class="inp" autocomplete="username" autocapitalize="none" placeholder="Например: aigerim2026" style="margin:6px 0 12px">
+   <label class="mut" style="font-size:14px">Код доступа</label><input id="lc" class="inp" inputmode="numeric" maxlength="6" placeholder="6 цифр" style="margin:6px 0 16px;letter-spacing:.2em;font-size:20px" onkeyup="if(event.key==='Enter')doLogin()">
+   <button class="btn wide" onclick="doLogin()">Войти</button>
+   <p class="mut" style="font-size:13px;margin-top:10px">Вход нужен один раз — дальше игра запомнит его на этом устройстве. Один код — для всех детей семьи.</p></div>
+  <div class="card" style="text-align:center"><b>Нет кода доступа?</b><p class="mut" style="font-size:14px;margin:6px 0 12px">Напишите нам в WhatsApp — пришлём логин и код.</p>
+   <a class="btn wide" style="background:#25A35A;text-decoration:none" href="${waLink('Здравствуйте! Хочу получить доступ к игре «Мой первый миллион».')}" target="_blank" rel="noopener">💬 WhatsApp ${WA_SHOW}</a></div>`;
+}
+function doLogin(){
+  const l=($('lg').value||'').trim(),c=($('lc').value||'').replace(/\D/g,'');
+  if(normLogin(l).length<3){toast('Введите логин');return;}
+  if(c.length!==6){toast('Код — 6 цифр');return;}
+  if(!authOk({login:l,code:c})){toast('Логин или код не подходят. Проверьте и попробуйте ещё раз');return;}
+  S.auth={login:l,code:c,at:Date.now()};save();toast('Добро пожаловать! 🎉');VIEW='profiles';render();
+}
+function logout(){askConfirm('Выйти из игры на этом устройстве? Прогресс детей сохранится, но для входа снова понадобятся логин и код.',()=>{S.auth=null;PARENT_OK=false;S.cur=null;save();VIEW='profiles';render();});}
+
 /* =================== ЭКРАНЫ =================== */
 function render(){
   const a=$('app');
+  if(!authOk(S.auth)){stopSpeak();a.innerHTML=vLogin();$('nav').innerHTML='';return;}
   if(VIEW==='profiles'){a.innerHTML=vProfiles();$('nav').innerHTML='';return;}
   if(VIEW==='new'){a.innerHTML=vNew();$('nav').innerHTML='';return;}
   if(VIEW==='parent'){a.innerHTML=vParent();$('nav').innerHTML='';return;}
@@ -1482,7 +1511,9 @@ function vParent(){
   <h3 class="sec">Отчёты с других устройств</h3>
   ${reps.length?reps.map(s=>pCard(s,null)).join(''):'<div class="card mut">Отчётов пока нет.</div>'}
   <div class="card"><b>📥 Добавить отчёт по коду</b><textarea id="imp" class="inp" placeholder="Вставьте код, начинающийся с МПМ:" style="margin:10px 0"></textarea><button class="btn wide" onclick="importReport()">Добавить</button></div>
-  <button class="btn ghost wide" onclick="changePin()">🔑 Сменить PIN</button>`;
+  <button class="btn ghost wide" onclick="changePin()">🔑 Сменить PIN</button>
+  <p class="mut" style="text-align:center;font-size:13px;margin:14px 0 6px">Вход выполнен: <b>${esc(S.auth.login)}</b></p>
+  <button class="btn ghost wide" onclick="logout()">🚪 Выйти на этом устройстве</button>`;
 }
 function importReport(){
   let v=($('imp').value||'').trim();const m=v.match(/МПМ:([A-Za-z0-9+/=]+)/);
