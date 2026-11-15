@@ -130,6 +130,14 @@ small{color:var(--mut)}
 textarea.inp{min-height:90px;font-size:12px;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
 .pk{border-left:5px solid var(--teal)}
 .spark{width:100%;height:60px;display:block;margin-top:6px}
+.snd{position:absolute;top:12px;right:12px;z-index:2;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.28);font-size:22px;display:flex;align-items:center;justify-content:center}
+.snd.off{opacity:.75}
+.snd2{position:fixed;top:12px;right:12px;width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:var(--sh);font-size:22px;z-index:10}
+.tgl{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
+.sw{width:52px;height:30px;border-radius:99px;background:#D9D3C6;position:relative;transition:.2s;flex:none}
+.sw:after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sw.on{background:var(--teal)}.sw.on:after{left:25px}
+input[type=range]{width:100%;accent-color:var(--teal)}
 </style>
 </head>
 <body>
@@ -332,10 +340,11 @@ const ACH = [
 /* =================== ХРАНЕНИЕ =================== */
 const KEY='moy_pervyi_million_v1';
 let MEM=null;
-function blank(){return {profiles:{},order:[],parent:{pin:null},reports:{},cur:null};}
+function blank(){return {profiles:{},order:[],parent:{pin:null},reports:{},cur:null,sound:{music:true,sfx:true,vol:60}};}
 function load(){try{const s=localStorage.getItem(KEY);if(s)return Object.assign(blank(),JSON.parse(s));}catch(e){}return MEM||blank();}
 function save(){MEM=S;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 let S=load();
+if(!S.sound)S.sound={music:true,sfx:true,vol:60};
 let VIEW='profiles', TAB='home', PARENT_OK=false, NEWAV=AVATARS[0];
 
 /* =================== УТИЛИТЫ =================== */
@@ -435,7 +444,7 @@ function endWeek(){
   p.hist.push(nw(p));if(p.hist.length>260)p.hist.shift();
   startWeek(p);
   save();
-  weekReport(p,R,nw0);
+  sfx('week');weekReport(p,R,nw0);
   checkAch(p);
 }
 const BIZM=Object.fromEntries(BIZ.map(b=>[b[0],b]));
@@ -457,11 +466,13 @@ function choose(i){
   addXp(p,(c.xp||0)+5);
   if(c.fx){const r=c.fx(p);if(r)msg.push(r);}
   p.ev.done=true;p.ev.res={c:i,msg:msg.join(' ')};
+  sfx(c.w===true?'good':c.w===false?'bad':'coin');
   save();render();checkAch(p);
 }
 function answer(k){
   const p=P();if(p.quiz.ans!==null)return;
   const q=QUIZ[p.quiz.i];p.quiz.ans=k;p.st.qt++;
+  sfx(k===q[2]?'good':'bad');
   if(k===q[2]){p.st.qc++;addXp(p,20);earn(p,50,'🧠 Правильный ответ на вопрос недели');toast('Верно! +50 сом и +20 опыта');}
   else{addXp(p,5);}
   save();render();checkAch(p);
@@ -472,7 +483,7 @@ function doChore(id){
   if(p.chores.length>=MAX_CHORES){toast('На этой неделе сил больше нет: максимум '+MAX_CHORES+' дела');return;}
   const c=CHORES.find(x=>x[0]===id);
   const k=p.mood<30?0.7:1;const pay=Math.round(c[3]*k);
-  p.chores.push(id);earn(p,pay,c[1]+' '+c[2]);p.st.ch++;addXp(p,5);
+  sfx('coin');p.chores.push(id);earn(p,pay,c[1]+' '+c[2]);p.st.ch++;addXp(p,5);
   toast('+'+fmt(pay)+(k<1?' (настроение низкое — заработок меньше)':''));
   save();render();checkAch(p);
 }
@@ -481,7 +492,7 @@ function buy(id){
   if(p.cash<pr){toast('Не хватает наличных. Можно поставить цель 🎯');return;}
   spend(p,pr,it[1]+' Покупка: '+it[2]);p.inv.push(id);moodAdd(p,it[5]);if(it[6])addXp(p,it[6]);
   const msg={need:'Нужная вещь куплена 👍',want:'Ура! Радость — тоже важная часть бюджета 😊',gift:'Подарок близким — это здорово ❤️',grow:'Вложение в себя — лучшая инвестиция 📚'}[it[4]];
-  toast(msg);save();render();checkAch(p);
+  sfx('coin');toast(msg);save();render();checkAch(p);
 }
 function goalFromShop(id){
   const p=P(),it=SHOP.find(x=>x[0]===id);
@@ -510,7 +521,7 @@ function goalBuy(gid){
   p.cash+=g.saved-g.target;g.saved=0;g.done=true;p.st.spent+=g.target;
   if(g.item)p.inv.push(g.item);
   addLog(p,'🎉 Мечта сбылась: '+g.n,-g.target);
-  moodAdd(p,25);addXp(p,50);p.fl.goalDone=1;
+  moodAdd(p,25);addXp(p,50);p.fl.goalDone=1;sfx('win');
   modal(`<div class="celebrate"><span class="e">${g.e}</span><h2>Мечта сбылась!</h2><p>Ты накопил ${fmt(g.target)} и купил: <b>${esc(g.n)}</b>.</p><p class="mut" style="margin:10px 0 16px">Терпение и план — вот секрет больших покупок. +50 опыта</p><button class="btn wide" onclick="closeModal()">Ура!</button></div>`);
   save();render();checkAch(p);
 }
@@ -539,7 +550,7 @@ function buyBiz(id){
   if(p.cash<d[3]){toast('Не хватает наличных: нужно '+fmt(d[3]));return;}
   if(p.biz.some(b=>b.id===id)){toast('Этот бизнес у тебя уже есть — прокачивай его!');return;}
   spend(p,d[3],d[1]+' Открыт бизнес: '+d[2]);
-  p.biz.push({id,lv:1,inv:d[3],total:0,last:0,weeks:0,bad:null});p.fl.biz=1;addXp(p,40);
+  sfx('win');p.biz.push({id,lv:1,inv:d[3],total:0,last:0,weeks:0,bad:null});p.fl.biz=1;addXp(p,40);
   modal(`<div class="celebrate"><span class="e">${d[1]}</span><h2>Ты открыл бизнес!</h2><p><b>${d[2]}</b> будет приносить прибыль каждую неделю. Но бывают и плохие недели — это риск предпринимателя.</p><button class="btn wide" style="margin-top:16px" onclick="closeModal()">Вперёд!</button></div>`);
   save();render();checkAch(p);
 }
@@ -564,11 +575,12 @@ function checkAch(p){
   if(!got.length)return;
   save();
   if(got.some(a=>a[0]==='m1')){million(p);return;}
-  got.forEach((a,k)=>setTimeout(()=>toast(a[1]+' Достижение: '+a[2]+' (+25 опыта)'),k*1800+200));
+  sfx('win');got.forEach((a,k)=>setTimeout(()=>toast(a[1]+' Достижение: '+a[2]+' (+25 опыта)'),k*1800+200));
   render();
 }
-function levelUp(i){const l=LEVELS[i];modal(`<div class="celebrate"><span class="e">${l[2]}</span><h2>Новый уровень!</h2><p>Теперь ты — <b>${l[1]}</b> (уровень ${i+1}).</p>${BIZ.filter(b=>b[6]===i+1).map(b=>`<p class="lesson good">Открыт новый бизнес: ${b[1]} ${b[2]}</p>`).join('')}<button class="btn wide" style="margin-top:16px" onclick="closeModal()">Отлично!</button></div>`);render();}
+function levelUp(i){const l=LEVELS[i];sfx('win');modal(`<div class="celebrate"><span class="e">${l[2]}</span><h2>Новый уровень!</h2><p>Теперь ты — <b>${l[1]}</b> (уровень ${i+1}).</p>${BIZ.filter(b=>b[6]===i+1).map(b=>`<p class="lesson good">Открыт новый бизнес: ${b[1]} ${b[2]}</p>`).join('')}<button class="btn wide" style="margin-top:16px" onclick="closeModal()">Отлично!</button></div>`);render();}
 function million(p){
+  sfx('win');
   modal(`<div class="celebrate"><span class="e">👑</span><h1>Мой первый миллион!</h1><p style="margin:10px 0">${esc(p.name)}, твой капитал — <b>${fmt(nw(p))}</b>!</p><p class="lesson good">Ты прошёл путь за ${p.week-1} недель. Разумных решений: ${wisePct(p.st)}%. Главное — не сами деньги, а умение ими управлять.</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Ура!</button></div>`);
   render();
 }
@@ -612,6 +624,82 @@ function tipOfWeek(p){
   return pick(['💡 Плати сначала себе: откладывай часть любого дохода.','💡 Перед покупкой спроси себя: «Мне это нужно или просто хочется?»','💡 Не клади все деньги в одно место: часть в банк, часть в бизнес.','💡 Маленькие траты каждый день складываются в большие суммы.']);
 }
 
+/* =================== МУЗЫКА И ЗВУКИ =================== */
+/* Мелодия синтезируется в браузере (Web Audio): без файлов и без чужих записей */
+const SND={ctx:null,master:null,mus:null,fx:null,timer:null,next:0,step:0,playing:false,stopT:null};
+function mtof(m){return 440*Math.pow(2,(m-69)/12);}
+function audioInit(){
+  if(SND.ctx)return true;
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+  try{SND.ctx=new AC();}catch(e){return false;}
+  const c=SND.ctx;
+  SND.master=c.createGain();SND.master.gain.value=S.sound.vol/100;
+  SND.mus=c.createGain();SND.mus.gain.value=0;
+  SND.fx=c.createGain();SND.fx.gain.value=1.1;
+  // мягкая «комната» (реверберация)
+  const len=Math.floor(c.sampleRate*2.4),buf=c.createBuffer(2,len,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);}
+  const rev=c.createConvolver();rev.buffer=buf;const wet=c.createGain();wet.gain.value=0.4;
+  SND.mus.connect(SND.master);SND.mus.connect(rev);rev.connect(wet);wet.connect(SND.master);
+  SND.fx.connect(SND.master);SND.master.connect(c.destination);
+  return true;
+}
+// Ля минор, пентатоника; аккорды Am – F – C – G, темп 80
+const MUS={prog:[[[57,60,64],45,[9,0,4]],[[53,57,60],41,[5,9,0]],[[55,60,64],48,[0,4,7]],[[55,59,62],43,[7,11,2]]],
+  scale:[69,72,74,76,79,81,84,86,88],
+  pats:[[1,0,1,0,1,1,0,0],[1,0,0,1,0,1,0,0],[1,1,0,1,0,0,1,0],[1,0,1,0,0,0,1,0],[1,0,1,1,0,1,0,0]],
+  mi:3,pat:null};
+const STEP=60/80/2;
+function tone(f,t,d,type,g,att,lp,dest){
+  const c=SND.ctx,o=c.createOscillator(),gn=c.createGain(),fl=c.createBiquadFilter();
+  o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp;
+  gn.gain.setValueAtTime(0.0001,t);gn.gain.linearRampToValueAtTime(g,t+att);gn.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(fl);fl.connect(gn);gn.connect(dest||SND.mus);o.start(t);o.stop(t+d+0.05);
+}
+function pluck(f,t){tone(f,t,1.2,'triangle',0.14,0.008,2400);tone(f*2,t,0.45,'sine',0.03,0.005,4000);} // похоже на щипок струны комуза
+function playStep(s,t){
+  const bar=Math.floor(s/8),st=s%8,ch=MUS.prog[bar%4],phrase=Math.floor(bar/4)%4;
+  if(st===0){
+    ch[0].forEach(n=>tone(mtof(n),t,STEP*8+1.6,'triangle',0.07,0.6,1000));
+    tone(mtof(ch[1]),t,STEP*4,'sine',0.22,0.02,400);
+    MUS.pat=pick(MUS.pats);
+  }
+  if(st===4)tone(mtof(ch[1]+(phrase%2?7:12)),t,STEP*4,'sine',0.14,0.02,500);
+  if(phrase===3&&bar%4>=2)return; // передышка в мелодии
+  if(!MUS.pat||!MUS.pat[st])return;
+  MUS.mi=Math.max(0,Math.min(MUS.scale.length-1,MUS.mi+pick([-2,-1,-1,0,1,1,2])));
+  if(st===0||st===4){ // на сильную долю — звук аккорда
+    let best=MUS.mi,bd=99;MUS.scale.forEach((n,i)=>{if(ch[2].includes(n%12)&&Math.abs(i-MUS.mi)<bd){bd=Math.abs(i-MUS.mi);best=i;}});MUS.mi=best;
+  }
+  pluck(mtof(MUS.scale[MUS.mi]),t);
+}
+function sched(){const c=SND.ctx;while(SND.next<c.currentTime+0.4){playStep(SND.step,SND.next);SND.next+=STEP;SND.step++;}}
+function musicStart(){
+  if(!audioInit())return;
+  const c=SND.ctx;if(c.state!=='running')c.resume();
+  clearTimeout(SND.stopT);
+  if(!SND.playing){SND.playing=true;SND.step=0;SND.next=c.currentTime+0.15;SND.timer=setInterval(sched,100);}
+  SND.mus.gain.cancelScheduledValues(c.currentTime);SND.mus.gain.setTargetAtTime(0.85,c.currentTime,0.6);
+}
+function musicStop(){
+  if(!SND.ctx||!SND.playing)return;
+  const c=SND.ctx;SND.mus.gain.cancelScheduledValues(c.currentTime);SND.mus.gain.setTargetAtTime(0,c.currentTime,0.25);
+  clearTimeout(SND.stopT);SND.stopT=setTimeout(()=>{clearInterval(SND.timer);SND.playing=false;},1500);
+}
+const SFX={coin:[[988,0,.12],[1319,.08,.28]],good:[[523,0,.16],[659,.09,.16],[784,.18,.32]],bad:[[392,0,.2],[330,.15,.32]],
+  win:[[523,0,.13],[659,.11,.13],[784,.22,.13],[1047,.33,.6]],week:[[659,0,.22],[784,.13,.22],[988,.26,.45]]};
+function sfx(k){
+  if(!S.sound.sfx||!audioInit())return;
+  const c=SND.ctx;if(c.state!=='running')c.resume();
+  const t=c.currentTime+0.02;SFX[k].forEach(([f,dt,d])=>tone(f,t+dt,d,'triangle',0.2,0.01,5000,SND.fx));
+}
+function toggleMusic(){S.sound.music=!S.sound.music;save();if(S.sound.music)musicStart();else musicStop();toast(S.sound.music?'🎵 Музыка включена':'🔇 Музыка выключена');render();}
+function toggleSfx(){S.sound.sfx=!S.sound.sfx;save();if(S.sound.sfx)sfx('coin');render();}
+function setVol(v){S.sound.vol=+v;save();if(SND.master)SND.master.gain.setTargetAtTime(S.sound.vol/100,SND.ctx.currentTime,0.05);const l=document.getElementById('volv');if(l)l.textContent=v+'%';}
+// браузеры разрешают звук только после касания экрана
+document.addEventListener('pointerdown',()=>{if(S.sound.music&&!SND.playing)musicStart();else if(SND.ctx&&SND.ctx.state!=='running'&&!document.hidden)SND.ctx.resume();},true);
+document.addEventListener('visibilitychange',()=>{if(!SND.ctx)return;if(document.hidden)SND.ctx.suspend();else if(S.sound.music||S.sound.sfx)SND.ctx.resume();});
+
 /* =================== ЭКРАНЫ =================== */
 function render(){
   const a=$('app');
@@ -629,7 +717,7 @@ function pickP(id){S.cur=id;save();VIEW='game';TAB='home';render();}
 
 function vProfiles(){
   const ps=S.order.map(id=>S.profiles[id]).filter(Boolean);
-  return `<div class="hero"><div class="logo">💰</div><h1>Мой первый миллион</h1><p>Игра о деньгах, решениях и мечтах — в кыргызских сомах</p></div>
+  return `<button class="snd2" onclick="toggleMusic()" title="Музыка">${S.sound.music?'🎵':'🔇'}</button><div class="hero"><div class="logo">💰</div><h1>Мой первый миллион</h1><p>Игра о деньгах, решениях и мечтах — в кыргызских сомах</p></div>
   <h3 class="sec">Кто играет?</h3>
   <div class="plist">${ps.map(p=>`<button class="pcard" onclick="pickP('${p.id}')"><div class="av">${p.av}</div><b>${esc(p.name)}</b><small>Неделя ${p.week} · ${fmt(nw(p))}</small></button>`).join('')}
   <button class="pcard add" onclick="NEWAV=AVATARS[0];go('new')"><div class="av">➕</div><b>Новый игрок</b><small>Старт: 1 000 сом</small></button></div>
@@ -662,6 +750,7 @@ function vTop(p){
   const pr=nx?Math.round((p.xp-l[0])/(nx[0]-l[0])*100):100;
   const n=nw(p),mp=Math.max(0,Math.min(100,n/1e6*100));
   return `<div class="top">
+   <button class="snd ${S.sound.music?'':'off'}" onclick="toggleMusic()" title="Музыка">${S.sound.music?'🎵':'🔇'}</button>
    <div class="row"><div class="av">${p.av}</div><div style="flex:1;min-width:0"><b style="font-size:18px">${esc(p.name)}</b><br><small>${l[2]} ${l[1]} · уровень ${L+1} · неделя ${p.week}</small></div></div>
    <div class="cap">${fmt(n)}</div><small>капитал</small>
    <div class="chips"><span class="chip">💵 ${fmt(p.cash)}</span><span class="chip">🏦 ${fmt(p.bank+depSum(p))}</span><span class="chip">🎯 ${fmt(goalsSum(p))}</span><span class="chip">🏪 ${p.biz.length}</span>${p.loan?`<span class="chip">💸 долг ${fmt(p.loan.left*p.loan.pay)}</span>`:''}</div>
@@ -774,6 +863,12 @@ function vMe(p){
   <div class="grid3">${ACH.map(a=>`<div class="ach ${p.ach.includes(a[0])?'':'off'}"><span class="e">${a[1]}</span><b>${a[2]}</b>${a[3]}</div>`).join('')}</div>
   <h3 class="sec">📒 Журнал денег</h3>
   <div class="card">${p.log.slice(0,30).map(l=>`<div class="logl"><span><small>Нед. ${l.w}</small> ${esc(l.t)}</span>${l.a?`<b class="${l.a>0?'pos':'neg'}">${sgn(l.a)}</b>`:''}</div>`).join('')}</div>
+  <h3 class="sec">🎵 Звук</h3>
+  <div class="card">
+   <div class="tgl" onclick="toggleMusic()"><span>🎵 Фоновая музыка</span><span class="sw ${S.sound.music?'on':''}"></span></div>
+   <div class="tgl" onclick="toggleSfx()"><span>🔔 Звуки действий</span><span class="sw ${S.sound.sfx?'on':''}"></span></div>
+   <div style="padding-top:12px"><div class="row between"><span>🔊 Громкость</span><b id="volv">${S.sound.vol}%</b></div><input type="range" min="0" max="100" value="${S.sound.vol}" oninput="setVol(this.value)"></div>
+  </div>
   <button class="btn wide sun" onclick="showReport()">📤 Отправить отчёт родителям</button>
   <button class="btn wide ghost" style="margin-top:10px" onclick="S.cur=null;save();go('profiles')">🔄 Сменить игрока</button>`;
 }
