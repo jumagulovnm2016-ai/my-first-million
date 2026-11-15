@@ -373,6 +373,113 @@ EVENTS.push(
   {t:'Учредить стипендию (−400 000 сом)',m:-400000,mood:20,w:true,xp:50,flag:'patron',l:'Вложение в образование других — одна из лучших форм благотворительности.'},
   {t:'Не сейчас',m:0,w:null,l:'Можно вернуться к этому позже, когда будешь готов.'}]}
 );
+/* ---------- Третья глава: после 20 000 000 сом — налоги, штрафы, санкции ---------- */
+const BIG_GOAL=20000000;
+const TAX={profit:0.10,social:0.03,prop:0.0002,peni:0.01,over:0.08};
+function bigScale(p){return Math.max(500000,Math.round(Math.max(p.lastBizP,0)));}
+function ownedOf(p,ids){const b=p.biz.find(x=>ids.includes(x.id));return b||p.biz.slice().sort((a,b)=>(b.last||0)-(a.last||0))[0];}
+function suspendBiz(p,ids,weeks,why){
+  const b=ownedOf(p,ids);if(!b)return '';
+  p.susp=(p.susp||[]).filter(s=>s.id!==b.id);p.susp.push({id:b.id,until:p.week+weeks,why});
+  addLog(p,'⛔ Приостановлен бизнес «'+BIZM[b.id][2]+'» на '+weeks+' нед.: '+why,0);
+  return '⛔ «'+BIZM[b.id][2]+'» приостановлен на '+weeks+' нед. Пока он закрыт, прибыли нет.';
+}
+function freeze(p,a,weeks,why){
+  let need=a;const fb=Math.min(p.bank,need);p.bank-=fb;need-=fb;const fc=Math.min(p.cash,need);p.cash-=fc;need-=fc;
+  const got=a-need;if(got<=0)return '';
+  (p.frozen=p.frozen||[]).push({a:got,until:p.week+weeks,why});
+  addLog(p,'🧊 Заморожено на счёте '+fmt(got)+' на '+weeks+' нед.: '+why,0);
+  return '🧊 Банк заморозил '+fmt(got)+' на '+weeks+' нед. Эти деньги твои, но тратить их нельзя.';
+}
+function addTaxDebt(p,a,why){
+  if(!p.taxdebt)p.taxdebt={a:0,w:0,why};
+  p.taxdebt.a+=a;p.taxdebt.why=why;addLog(p,'🧾 Налоговый долг: '+why,0);
+  return '🧾 Появился налоговый долг '+fmt(a)+'. Пока он не погашен, каждую неделю начисляются пени 1%.';
+}
+function fine(p,a,why){payMust(p,a,'⚖️ Штраф: '+why);p.st.fines=(p.st.fines||0)+a;return '⚖️ Штраф '+fmt(a)+'.';}
+function payDebt(){
+  const p=P();if(!p.taxdebt)return;
+  const a=p.taxdebt.a;
+  if(p.cash+p.bank<a){toast('Не хватает денег на счёте и в кошельке');return;}
+  payMust(p,a,'🧾 Погашен налоговый долг');p.taxdebt=null;addXp(p,20);p.st.wise++;
+  toast('Долг погашен — пени больше не начисляются ✅');sfx('good');save();render();
+}
+function frozenSum(p){return (p.frozen||[]).reduce((s,f)=>s+f.a,0);}
+function isSusp(p,id){return (p.susp||[]).find(s=>s.id===id&&s.until>p.week);}
+
+EVENTS.push(
+ {id:'nocheck',big:1,e:'🧾',title:'Сделка без чека',text:p=>'Крупный покупатель предлагает: «Продай партию без чека и без НДС — заплачу наличными, сразу '+fmt(bigScale(p))+'. Никто не узнает».',ch:[
+  {t:'Продать без чека',m:p=>bigScale(p),w:false,fx:p=>{p.fl.grey=1;const a=bigScale(p);p.pend.push({w:p.week+6,a:0,t:'🔍 Налоговая нашла продажу без чека',fx:'nocheckFine',v:a});},l:'Продажа без чека — уклонение от налогов. Электронные счета-фактуры и кассы позволяют налоговой видеть сделки, поэтому обман почти всегда раскрывается.'},
+  {t:'Продать официально, с НДС и счёт-фактурой',m:p=>Math.round(bigScale(p)*0.88),w:true,xp:30,l:'НДС (12%) платит покупатель в цене товара, а продавец передаёт его государству. Честная сделка — спокойный сон.'},
+  {t:'Отказаться от такой сделки',m:0,w:true,xp:20,l:'Иногда лучше потерять сделку, чем рисковать штрафами и репутацией.'}]},
+ {id:'envelope',big:1,e:'✉️',title:'Зарплата «в конверте»',text:p=>'Бухгалтер предлагает платить работникам часть зарплаты неофициально, «в конверте», чтобы не платить взносы в Соцфонд. Экономия — '+fmt(bigScale(p)*0.3)+'.',cond:p=>!p.fl.envelope,ch:[
+  {t:'Согласиться',m:p=>Math.round(bigScale(p)*0.3),w:false,fx:p=>{p.fl.envelope=1;p.fl.grey=1;p.pend.push({w:p.week+8,a:0,t:'🔍 Соцфонд проверил зарплаты',fx:'envelopeFine',v:Math.round(bigScale(p)*0.3)});},l:'Зарплата «в конверте» — нарушение закона. Работники теряют будущую пенсию и больничные, а компании грозят штрафы.'},
+  {t:'Платить честно и официально',m:0,w:true,xp:30,l:'Взносы в Соцфонд — это будущие пенсии и пособия твоих работников. Честный работодатель ценится больше.'}]},
+ {id:'declar',big:1,e:'📑',title:'Срок налоговой декларации',text:'Через неделю нужно сдать налоговую декларацию — отчёт о доходах и налогах компании.',ch:[
+  {t:'Нанять опытного бухгалтера (−200 000 сом)',m:-200000,must:1,w:true,xp:20,l:'Хороший бухгалтер стоит денег, но защищает от ошибок и штрафов.'},
+  {t:'Заполнить самому',m:0,w:null,fx:p=>{if(Math.random()<.5)return 'Повезло — ошибок не нашли.';return fine(p,Math.round(bigScale(p)*0.4),'ошибка в декларации');},l:'Большой бизнес — сложная бухгалтерия. Экономия на специалистах бывает дорогой.'},
+  {t:'Сдать позже, сейчас некогда',m:0,w:false,fx:p=>{const r=fine(p,150000,'декларация сдана не вовремя');return r+' '+addTaxDebt(p,Math.round(bigScale(p)*0.5),'налог за квартал уплачен с опозданием');},l:'За опоздание с декларацией — штраф, а за каждый день просрочки налога растут пени.'}]},
+ {id:'peni',big:1,e:'⏳',title:'Недоплата налога',text:p=>'Налоговая служба обнаружила, что компания недоплатила налог: '+fmt(bigScale(p)*0.6)+'. Пока долг не погашен, каждую неделю растут пени.',cond:p=>!p.taxdebt,ch:[
+  {t:'Погасить сразу',m:p=>-Math.round(bigScale(p)*0.6),must:1,w:true,xp:25,l:'Чем быстрее гасишь налоговый долг, тем меньше пени.'},
+  {t:'Отложить на потом',m:0,w:false,fx:p=>addTaxDebt(p,Math.round(bigScale(p)*0.6),'недоплата налога'),l:'Пени — это плата за каждый день просрочки. Долг растёт сам, а через несколько недель налоговая может заморозить счёт.'},
+  {t:'Оспорить через юриста (−150 000 сом)',m:-150000,must:1,w:null,fx:p=>{if(Math.random()<.5)return '⚖️ Юрист доказал, что ошибки не было. Долг отменён!';return 'Спор проигран. '+addTaxDebt(p,Math.round(bigScale(p)*0.6),'недоплата налога (спор проигран)');},l:'Если уверен, что прав, — можно спорить законно, через юриста и суд. Это нормальный способ защищать свои права.'}]},
+ {id:'eco',big:1,e:'🏭',title:'Отходы в реку',text:'Экологи обнаружили, что отходы с твоего производства попадают в реку. Нужно поставить очистные фильтры.',cond:p=>p.biz.some(b=>['nuts','build','chain','shop'].includes(b.id)),ch:[
+  {t:p=>'Поставить фильтры (−'+fmt(bigScale(p)*0.8)+')',m:p=>-Math.round(bigScale(p)*0.8),must:1,w:true,xp:30,l:'Бизнес отвечает за природу вокруг. Чистая река важнее сэкономленных денег.'},
+  {t:'Ничего не делать',m:0,w:false,fx:p=>{p.pend.push({w:p.week+3,a:0,t:'🌊 Экологическая инспекция вернулась',fx:'ecoFine',v:bigScale(p)});},l:'За вред природе — крупные штрафы и даже остановка производства.'}]},
+ {id:'sanit',big:1,e:'🧪',title:'Санитарная проверка',text:'Инспекторы нашли в твоих магазинах просроченные продукты.',cond:p=>p.biz.some(b=>['chain','shop','cafe'].includes(b.id)),ch:[
+  {t:'Признать, уничтожить товар и заплатить штраф',m:0,w:true,xp:30,fx:p=>fine(p,Math.round(bigScale(p)*0.2),'просроченные продукты')+' Ты ввёл ежедневный контроль сроков.',l:'Признать ошибку и исправить — честно и выгоднее всего. Здоровье покупателей важнее прибыли.'},
+  {t:'Предложить инспектору «договориться»',m:0,w:false,fx:p=>fine(p,Math.round(bigScale(p)*0.6),'попытка подкупа инспектора')+' '+suspendBiz(p,['chain','shop','cafe'],2,'нарушение санитарных норм'),l:'Подкуп — преступление. Наказание за него всегда тяжелее, чем за исходное нарушение.'},
+  {t:'Спорить: «Это не наше!»',m:0,w:false,fx:p=>suspendBiz(p,['chain','shop','cafe'],1,'проверка продолжается'),l:'Отрицать очевидное бесполезно — проверка затянется, а магазин будет закрыт.'}]},
+ {id:'fire',big:1,e:'🚒',title:'Пожарная инспекция',text:'Пожарный инспектор выдал предписание: в здании нет второго эвакуационного выхода, а огнетушители просрочены.',ch:[
+  {t:p=>'Исправить всё (−'+fmt(bigScale(p)*0.3)+')',m:p=>-Math.round(bigScale(p)*0.3),must:1,w:true,xp:25,l:'Правила пожарной безопасности написаны после настоящих трагедий. Они спасают жизни.'},
+  {t:'Отложить',m:0,w:false,fx:p=>{p.pend.push({w:p.week+4,a:0,t:'🚒 Предписание пожарных не выполнено',fx:'fireFine',v:bigScale(p)});},l:'Невыполненное предписание — штраф и закрытие здания до исправления.'}]},
+ {id:'permit',big:1,e:'🏗️',title:'Разрешение на стройку',text:'Строительная компания начинает новый дом. Разрешение на строительство оформляется 3 недели.',cond:p=>p.biz.some(b=>b.id==='build'),ch:[
+  {t:'Ждать разрешения законно',m:0,w:true,xp:25,fx:p=>suspendBiz(p,['build'],3,'ожидание разрешения на строительство'),l:'Разрешение проверяет, что дом безопасен и не помешает соседям. Ждать — правильно.'},
+  {t:'Строить без разрешения',m:p=>Math.round(bigScale(p)*0.4),w:false,fx:p=>{p.pend.push({w:p.week+5,a:0,t:'🏗️ Стройку без разрешения обнаружили',fx:'permitFine',v:bigScale(p)});},l:'Самовольную постройку могут снести за счёт владельца, а компанию — оштрафовать.'}]},
+ {id:'bribe2',big:1,e:'🎁',title:'«Подарок» чиновнику',text:'Чиновник намекает: лицензию можно получить за 2 дня вместо 30, если сделать ему «подарок».',ch:[
+  {t:'Отказаться и сообщить в антикоррупционную службу',m:0,w:true,xp:40,fx:p=>suspendBiz(p,[],1,'лицензия оформляется в обычном порядке'),l:'Сообщить о вымогательстве — смелый и правильный поступок. Коррупция мешает честному бизнесу всей страны.'},
+  {t:'Сделать «подарок»',m:p=>-Math.round(bigScale(p)*0.3),must:1,w:false,fx:p=>{p.fl.grey=1;p.pend.push({w:p.week+6,a:0,t:'🚔 Чиновника задержали — компания тоже под следствием',fx:'bribeFine',v:bigScale(p)});},l:'Дача взятки — преступление, такое же, как получение. Рано или поздно это раскрывается.'},
+  {t:'Ждать 30 дней по закону',m:0,w:true,xp:20,fx:p=>suspendBiz(p,[],2,'ожидание лицензии'),l:'Законный путь бывает медленнее, но он надёжный.'}]},
+ {id:'sanct',big:1,e:'🌐',title:'Международные санкции',text:'Твой иностранный партнёр попал под международные санкции — ограничения, которые одни страны вводят против компаний других стран. Банк предупреждает: платежи этому партнёру могут заблокировать.',ch:[
+  {t:'Прекратить работу с ним и искать новых партнёров',m:0,w:true,xp:30,fx:p=>{p.boost=0.75;return 'Потеряли часть заказов на неделю, но счёт в безопасности.';},l:'Санкции касаются и тех, кто помогает их обходить. Разумнее искать новых партнёров, чем рисковать всем бизнесом.'},
+  {t:'Работать через посредников («серые схемы»)',m:p=>Math.round(bigScale(p)*0.3),w:false,fx:p=>{p.fl.grey=1;p.pend.push({w:p.week+3,a:0,t:'🌐 Банк обнаружил обход санкций',fx:'sanctFine',v:bigScale(p)});},l:'Обход санкций может закончиться заморозкой счетов и запретом работать с банками.'}]},
+ {id:'aml',big:1,e:'🏦',title:'Подозрительная операция',text:'Банк приостановил крупный перевод и просит подтвердить, откуда деньги и за что платёж.',cond:p=>p.bank>=1000000,ch:[
+  {t:'Предоставить договоры и документы',m:0,w:true,xp:25,fx:p=>freeze(p,Math.round(p.bank*0.2),1,'проверка документов'),l:'Банки обязаны проверять крупные операции, чтобы бороться с мошенниками и «грязными» деньгами. Честному бизнесу нечего скрывать.'},
+  {t:'Возмутиться и перевести через другие счета',m:0,w:false,fx:p=>freeze(p,Math.round(p.bank*0.5),8,'попытка обойти проверку')+' '+fine(p,200000,'нарушение правил банковских операций'),l:'Попытка обойти проверку выглядит ещё подозрительнее — счёт замораживают надолго.'}]},
+ {id:'lawsuit',big:1,e:'⚖️',title:'Иск покупателя',text:p=>'Покупатель подал в суд: проданный товар оказался бракованным. Он требует компенсацию '+fmt(bigScale(p)*0.3)+'.',ch:[
+  {t:'Признать, извиниться и выплатить компенсацию',m:p=>-Math.round(bigScale(p)*0.3),must:1,w:true,xp:25,l:'Права покупателей защищены законом. Честное признание ошибки сохраняет репутацию.'},
+  {t:'Судиться (юрист −100 000 сом)',m:-100000,must:1,w:null,fx:p=>{if(Math.random()<.3)return '⚖️ Суд встал на твою сторону: брак возник по вине покупателя.';payMust(p,Math.round(bigScale(p)*0.6),'⚖️ Решение суда: компенсация и судебные расходы');return 'Суд проигран: пришлось заплатить вдвое больше — '+fmt(bigScale(p)*0.6)+'.';},l:'В суд стоит идти, только если правда на твоей стороне.'},
+  {t:'Игнорировать',m:0,w:false,fx:p=>{payMust(p,Math.round(bigScale(p)*0.9),'⚖️ Решение суда без твоего участия');return 'Суд прошёл без тебя: компенсация втрое больше. '+freeze(p,Math.round(bigScale(p)),4,'арест счёта по решению суда');},l:'Если не приходить в суд, решение примут без тебя — и обычно не в твою пользу.'}]},
+ {id:'strike',big:1,e:'🪧',title:'Угроза забастовки',text:'Работники завода жалуются на переработки по 12 часов и грозят забастовкой.',ch:[
+  {t:p=>'Нанять ещё людей и ввести нормальный график (−'+fmt(bigScale(p)*0.4)+')',m:p=>-Math.round(bigScale(p)*0.4),must:1,w:true,xp:30,fx:p=>{p.mult=(p.mult||1)*1.03;return 'Отдохнувшие люди работают лучше: прибыль +3% навсегда.';},l:'Трудовой кодекс ограничивает рабочее время. Уставшие люди чаще ошибаются и болеют.'},
+  {t:'Отказать',m:0,w:false,fx:p=>suspendBiz(p,['nuts','build','chain'],2,'забастовка работников'),l:'Если не слышать работников, бизнес может встать.'}]},
+ {id:'export',big:1,e:'🚢',title:'Экспорт',text:'Ты отправляешь крупную партию товара за границу. Для экспорта НДС — 0%, но нужно правильно оформить документы.',cond:p=>p.biz.some(b=>['nuts','chain'].includes(b.id)),ch:[
+  {t:'Оформить все документы (−50 000 сом)',m:-50000,must:1,w:true,xp:25,fx:p=>{const a=Math.round(bigScale(p)*0.25);earn(p,a,'🚢 Экспорт оформлен правильно');return 'Документы в порядке: НДС не платишь, выгода '+fmt(a)+'.';},l:'Государство поддерживает экспорт: при вывозе товаров за рубеж НДС не взимается. Но только с правильными документами.'},
+  {t:'Отправить без документов',m:0,w:false,fx:p=>'Без документов льгота не действует. '+fine(p,Math.round(bigScale(p)*0.2),'экспорт без документов'),l:'Льготы работают только тогда, когда всё оформлено по закону.'}]},
+ {id:'bigaudit',big:1,e:'🔎',title:'Комплексная проверка',text:'К тебе пришла большая налоговая проверка за последние годы. Проверят всё: продажи, зарплаты, документы.',ch:[
+  {t:'Встретить проверку',m:0,w:null,fx:p=>{if(!p.fl.grey){addXp(p,40);p.fl.clean=1;return '✅ Нарушений не найдено! Честный учёт окупился: проверка прошла спокойно.';}const a=Math.round(bigScale(p)*1.5);p.fl.grey=0;return '❌ Найдены нарушения прошлых лет. '+fine(p,a,'нарушения, найденные при проверке')+' '+suspendBiz(p,[],2,'проверка документов');},l:'Каждое «серое» решение оставляет след. Проверка может прийти через годы.'}]}
+);
+
+/* отложенные последствия */
+const LATER={
+  nocheckFine:(p,v)=>{const a=Math.round(v*0.12)+Math.round(v*0.5);return fine(p,a,'продажа без чека: НДС + штраф')+' '+addTaxDebt(p,Math.round(v*0.1),'пени за неуплаченный НДС');},
+  envelopeFine:(p,v)=>{p.boost=0.8;return fine(p,Math.round(v*2.5),'зарплата «в конверте»')+' Работники обиделись: на следующей неделе прибыль меньше.';},
+  ecoFine:(p,v)=>fine(p,Math.round(v*1.2),'загрязнение реки')+' '+suspendBiz(p,['nuts','build','chain','shop'],4,'экологическое нарушение'),
+  fireFine:(p,v)=>fine(p,Math.round(v*0.4),'предписание пожарных не выполнено')+' '+suspendBiz(p,[],3,'нарушение пожарной безопасности'),
+  permitFine:(p,v)=>fine(p,Math.round(v*1.5),'стройка без разрешения, снос')+' '+suspendBiz(p,['build'],4,'самовольное строительство'),
+  bribeFine:(p,v)=>{p.mult=(p.mult||1)*0.95;return fine(p,Math.round(v*2),'дача взятки')+' Репутация пострадала: прибыль −5% навсегда.';},
+  sanctFine:(p,v)=>freeze(p,Math.round(p.bank*0.6),8,'обход санкций')+' '+fine(p,Math.round(v*0.8),'нарушение санкционного режима')
+};
+function bigModal(p){
+  sfx('win');
+  modal(`<div class="celebrate"><span class="e">🏛️</span><h1>20 миллионов!</h1><p style="margin:10px 0">${esc(p.name)}, теперь у тебя <b>большой бизнес</b>. А большой бизнес — это большая ответственность.</p></div>
+  <div class="lesson" style="margin-bottom:8px">🏢 Каждую неделю — расходы большой компании: аренда, охрана, бухгалтерия, управленцы.<br>🧾 И автоматически платятся налоги:<br>• налог на прибыль — 10% от прибыли<br>• взносы в Соцфонд за работников<br>• налог на имущество — за здания бизнеса</div>
+  <div class="lesson bad">⚖️ Начнутся проверки. За нарушения — <b>штрафы</b>, <b>пени</b>, <b>приостановка бизнеса</b> и <b>заморозка счетов</b>. Честные решения сейчас защитят тебя потом.</div>
+  <p class="mut" style="margin:10px 0;font-size:14px">Подробнее — в книге, глава «Налоги, штрафы и санкции».</p>
+  <button class="btn wide" onclick="closeModal()">Понятно, вперёд!</button>`);
+  render();
+}
+
 const EVM = Object.fromEntries(EVENTS.map(e=>[e.id,e]));
 function cm(c,p){return typeof c.m==='function'?c.m(p):c.m;}
 function ct(c,p){return typeof c.t==='function'?c.t(p):c.t;}
@@ -444,6 +551,8 @@ const ACH = [
  ['patron','🏫️','Меценат','Помоги школе или студентам',p=>p.fl.patron],
  ['nuts','🌰','Промышленник','Открой завод орехов и сухофруктов',p=>p.biz.some(b=>b.id==='nuts')],
  ['m10','💎','10 миллионов','Капитал 10 000 000 сом',p=>nw(p)>=1e7],
+ ['m20','🏛️','Большой бизнес','Капитал 20 000 000 сом',p=>p.fl.big],
+ ['clean','✨','Чистая репутация','Пройди комплексную проверку без нарушений',p=>p.fl.clean],
  ['m50','🏔️','Вершина: 50 миллионов','Капитал 50 000 000 сом',p=>nw(p)>=MIL_GOAL]
 ];
 
@@ -468,7 +577,7 @@ function pick(a){return a[Math.floor(Math.random()*a.length)];}
 function uid(){return Math.random().toString(36).slice(2,9);}
 function P(){return S.profiles[S.cur];}
 function lvl(p){let i=0;LEVELS.forEach((l,k)=>{if(p.xp>=l[0])i=k;});return i;}
-function nw(p){return Math.round(p.cash+p.bank+p.deps.reduce((s,d)=>s+d.a,0)+p.goals.reduce((s,g)=>s+(g.done?0:g.saved),0)+p.biz.reduce((s,b)=>s+b.inv*BIZ_SELL,0)-(p.loan?p.loan.left*p.loan.pay:0));}
+function nw(p){return Math.round(p.cash+p.bank+frozenSum(p)-(p.taxdebt?p.taxdebt.a:0)+p.deps.reduce((s,d)=>s+d.a,0)+p.goals.reduce((s,g)=>s+(g.done?0:g.saved),0)+p.biz.reduce((s,b)=>s+b.inv*BIZ_SELL,0)-(p.loan?p.loan.left*p.loan.pay:0));}
 function goalsSum(p){return p.goals.reduce((s,g)=>s+(g.done?0:g.saved),0);}
 function depSum(p){return p.deps.reduce((s,d)=>s+d.a,0);}
 
@@ -499,7 +608,8 @@ function payMust(p,a,t){
 
 /* =================== НЕДЕЛЯ =================== */
 function pickEvent(p){
-  const pool=EVENTS.filter(e=>!!e.rich===!!p.fl.mill&&(!e.cond||e.cond(p)));
+  const tier=p.fl.big&&Math.random()<0.85?'big':p.fl.mill?'rich':'base';
+  const pool=EVENTS.filter(e=>(e.big?'big':e.rich?'rich':'base')===tier&&(!e.cond||e.cond(p)));
   let el=pool.filter(e=>!p.recent.slice(-Math.min(10,pool.length-3)).includes(e.id));
   if(!el.length)el=pool;
   const e=pick(el);p.recent.push(e.id);if(p.recent.length>10)p.recent.shift();return e.id;
@@ -532,12 +642,19 @@ function endWeek(){
   if(p.biz.length){
     let bt=0;
     p.biz.forEach(b=>{const d=BIZM[b.id];let pr;
-      if(Math.random()<0.1){pr=-Math.round(d[3]*0.03);b.bad=pick(BADS);}
+      const su=isSusp(p,b.id);
+      if(su){pr=0;b.bad='⛔ приостановлен: '+su.why;}
+      else if(Math.random()<0.1){pr=-Math.round(d[3]*0.03);b.bad=pick(BADS);}
       else{pr=Math.round(rnd(d[4],d[5])*(1+BIZ_UP*(b.lv-1))*p.boost*(p.mult||1));b.bad=null;}
       b.last=pr;b.total+=pr;b.weeks++;bt+=pr;
       R.push([d[1]+' '+d[2]+(b.bad?' — '+b.bad:''),pr]);});
     p.st.bizp+=bt;p.lastBizP=bt;
     if(bt>=0)earn(p,bt,'🏪 Прибыль бизнеса');else payMust(p,-bt,'🏪 Убыток бизнеса');
+    if(p.fl.big){
+      const inv=p.biz.reduce((s,b)=>s+b.inv,0);
+      const tx=[['🏢 Расходы большой компании (аренда, охрана, бухгалтерия, управленцы)',Math.round(inv*TAX.over)],['🧾 Налог на прибыль (10%)',Math.round(Math.max(bt,0)*TAX.profit)],['👷 Взносы в Соцфонд за работников',Math.round(Math.max(bt,0)*TAX.social)],['🏠 Налог на имущество',Math.round(inv*TAX.prop)]];
+      tx.forEach(([t,a])=>{if(a>0){payMust(p,a,t);R.push([t,-a]);p.st.taxes=(p.st.taxes||0)+a;}});
+    }
   }else p.lastBizP=0;
   p.boost=1;
   // проценты
@@ -548,7 +665,18 @@ function endWeek(){
   // кредит
   if(p.loan){payMust(p,p.loan.pay,'💸 Платёж по микрозайму');R.push(['💸 Платёж по микрозайму',-p.loan.pay]);p.loan.left--;if(p.loan.left<=0){p.loan=null;R.push(['✅ Микрозайм погашен',0]);}}
   // отложенные события
-  p.pend.filter(x=>x.w<=p.week).forEach(x=>{if(x.a>0)earn(p,x.a,x.t);else if(x.a<0)payMust(p,-x.a,x.t);else addLog(p,x.t,0);R.push([x.t,x.a]);});
+  p.pend.filter(x=>x.w<=p.week).forEach(x=>{
+    if(x.fx&&LATER[x.fx]){addLog(p,x.t,0);R.push([x.t,0]);const r=LATER[x.fx](p,x.v);if(r)R.push([plain(r),0]);return;}
+    if(x.a>0)earn(p,x.a,x.t);else if(x.a<0)payMust(p,-x.a,x.t);else addLog(p,x.t,0);R.push([x.t,x.a]);});
+  // замороженные деньги, приостановки, пени
+  (p.frozen||[]).filter(f=>f.until<=p.week+1).forEach(f=>{p.bank+=f.a;addLog(p,'🔓 Счёт разморожен: '+fmt(f.a),0);R.push(['🔓 Разморожены деньги на счёте',f.a]);});
+  if(p.frozen)p.frozen=p.frozen.filter(f=>f.until>p.week+1);
+  if(p.susp)p.susp=p.susp.filter(s=>s.until>p.week+1);
+  if(p.taxdebt){
+    const pe=Math.max(1,Math.round(p.taxdebt.a*TAX.peni));p.taxdebt.a+=pe;p.taxdebt.w++;R.push(['⏳ Пени по налоговому долгу (1%)',-pe]);
+    if(p.taxdebt.w>=6){const a=p.taxdebt.a;payMust(p,a,'🧾 Принудительное взыскание налогового долга');R.push(['🧾 Налоговая списала долг принудительно',-a]);
+      const r=freeze(p,Math.round(p.bank*0.3),3,'неуплата налога');if(r)R.push([plain(r),0]);p.taxdebt=null;}
+  }
   p.pend=p.pend.filter(x=>x.w>p.week);
   // настроение
   moodAdd(p,-5);
@@ -684,11 +812,13 @@ function ptDone(tid){const p=P(),t=p.ptasks.find(x=>x.id===tid);t.status='done';
 /* =================== ДОСТИЖЕНИЯ =================== */
 function checkAch(p){
   if(nw(p)>=1e6)p.fl.mill=1;
+  if(nw(p)>=BIG_GOAL)p.fl.big=1;
   const got=[];
   ACH.forEach(a=>{if(!p.ach.includes(a[0])&&a[4](p)){p.ach.push(a[0]);got.push(a);p.xp+=25;}});
   if(!got.length)return;
   save();
   if(got.some(a=>a[0]==='m50')){summit(p);return;}
+  if(got.some(a=>a[0]==='m20')){bigModal(p);return;}
   if(got.some(a=>a[0]==='m1')){million(p);return;}
   sfx('win');got.forEach((a,k)=>setTimeout(()=>toast(a[1]+' Достижение: '+a[2]+' (+25 опыта)'),k*1800+200));
   render();
@@ -735,6 +865,7 @@ function weekReport(p,R,nw0){
   <button class="btn wide" onclick="closeModal();TAB='home';render();window.scrollTo(0,0)">Начать неделю ${p.week} ▶</button>`);
 }
 function tipOfWeek(p){
+  if(p.taxdebt)return '⏳ У тебя налоговый долг '+fmt(p.taxdebt.a)+'. Каждую неделю растут пени, а через 6 недель налоговая спишет его принудительно и заморозит часть счёта. Погаси во вкладке «Банк».';
   if(p.mood<30)return '😟 Настроение низкое — домашние дела приносят меньше. Разумно тратить немного и на радость!';
   if(p.loan)return '💸 У тебя долг по микрозайму. Сначала избавься от долгов, потом трать.';
   if(!p.goals.some(g=>!g.done))return '🎯 Совет: поставь цель — так легче копить.';
@@ -903,7 +1034,7 @@ function vTop(p){
    <button class="snd ${S.sound.music?'':'off'}" onclick="toggleMusic()" title="Музыка">${S.sound.music?'🎵':'🔇'}</button>
    <div class="row"><div class="av">${p.av}</div><div style="flex:1;min-width:0"><b style="font-size:18px">${esc(p.name)}</b><br><small>${l[2]} ${l[1]} · уровень ${L+1} · неделя ${p.week}</small></div></div>
    <div class="cap">${fmt(n)}</div><small>капитал</small>
-   <div class="chips"><span class="chip">💵 ${fmt(p.cash)}</span><span class="chip">🏦 ${fmt(p.bank+depSum(p))}</span><span class="chip">🎯 ${fmt(goalsSum(p))}</span><span class="chip">🏪 ${p.biz.length}</span>${p.loan?`<span class="chip">💸 долг ${fmt(p.loan.left*p.loan.pay)}</span>`:''}</div>
+   <div class="chips"><span class="chip">💵 ${fmt(p.cash)}</span><span class="chip">🏦 ${fmt(p.bank+depSum(p))}</span><span class="chip">🎯 ${fmt(goalsSum(p))}</span><span class="chip">🏪 ${p.biz.length}</span>${frozenSum(p)?`<span class="chip">🧊 ${fmt(frozenSum(p))}</span>`:''}${p.taxdebt?`<span class="chip">🧾 долг ${fmt(p.taxdebt.a)}</span>`:''}${p.loan?`<span class="chip">💸 долг ${fmt(p.loan.left*p.loan.pay)}</span>`:''}</div>
    <div class="goalm">${p.fl.mill?'🏔️ До 50 миллионов':'До миллиона'}: ${mp<0.1?mp.toFixed(2):mp.toFixed(1)}%<div class="bar" style="margin-top:4px"><i style="width:${Math.max(1,mp)}%"></i></div></div>
    <div class="goalm">Опыт: ${p.xp}${nx?' / '+nx[0]:''}<div class="bar" style="margin-top:4px"><i style="width:${pr}%"></i></div></div>
   </div>`;
@@ -985,18 +1116,20 @@ function vBank(p){
   <p class="mut" style="font-size:13px;margin:8px 4px 14px">Если закрыть вклад раньше срока — проценты сгорят.</p>
   ${p.deps.length?p.deps.map(d=>`<div class="card"><div class="row between"><div><b>${d.n}</b><br><small>${fmt(d.a)} → ${fmt(d.a*(1+d.r))} · осталось ${d.left} нед.</small></div><button class="btn sm ghost" onclick="closeDep('${d.id}')">Закрыть</button></div><div class="bar teal" style="margin-top:10px"><i style="width:${Math.round((d.total-d.left)/d.total*100)}%"></i></div></div>`).join(''):''}
   ${p.loan?`<div class="card" style="border:2px solid var(--red)"><b>💸 Микрозайм</b><p>Осталось ${p.loan.left} платежей по ${fmt(p.loan.pay)}. Всего: ${fmt(p.loan.left*p.loan.pay)}</p></div>`:''}
+  ${p.taxdebt?`<div class="card" style="border:2px solid var(--red)"><b>🧾 Налоговый долг: ${fmt(p.taxdebt.a)}</b><p style="font-size:14px;margin:4px 0 10px">${esc(p.taxdebt.why)}. Каждую неделю +1% пени. Осталось недель до принудительного взыскания: ${6-p.taxdebt.w}.</p><button class="btn red wide" onclick="payDebt()">Погасить долг</button></div>`:''}
+  ${(p.frozen||[]).map(f=>`<div class="card" style="border:2px solid #5B8DEF"><b>🧊 Заморожено: ${fmt(f.a)}</b><p style="font-size:14px;margin-top:4px">${esc(f.why)}. Разморозят через ${Math.max(1,f.until-p.week)} нед.</p></div>`).join('')}
   <div class="card"><b>📊 Всего заработано на процентах:</b> <span class="pos">${fmt(p.st.interest)}</span></div>`;
 }
 function vBiz(p){
   const L=lvl(p)+1;
-  const own=p.biz.map((b,i)=>{const d=BIZM[b.id];const c=upCost(b);return `<div class="card pk"><div class="row"><span class="big">${d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>Уровень ${b.lv}/${BIZ_MAXLV} · ${b.weeks} нед. · прибыль за всё время <span class="${b.total>=0?'pos':'neg'}">${sgn(b.total)}</span></small></div></div>
+  const own=p.biz.map((b,i)=>{const d=BIZM[b.id];const c=upCost(b);const su=isSusp(p,b.id);return `<div class="card pk" ${su?'style="border-left-color:var(--red)"':''}>${su?`<div class="lesson bad" style="margin:0 0 10px">⛔ Приостановлен ещё ${su.until-p.week} нед.: ${esc(su.why)}</div>`:''}<div class="row"><span class="big">${d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>Уровень ${b.lv}/${BIZ_MAXLV} · ${b.weeks} нед. · прибыль за всё время <span class="${b.total>=0?'pos':'neg'}">${sgn(b.total)}</span></small></div></div>
    <p style="margin:8px 0;font-size:14px">Прошлая неделя: <b class="${b.last>=0?'pos':'neg'}">${sgn(b.last)}</b>${b.bad?` <small>(${b.bad})</small>`:''}<br><small>Ожидаемо: ${fmt(d[4]*(1+BIZ_UP*(b.lv-1)))} – ${fmt(d[5]*(1+BIZ_UP*(b.lv-1)))} в неделю</small></p>
    <div class="row">${b.lv<BIZ_MAXLV?`<button class="btn sm org ${p.cash<c?'dis':''}" style="flex:1" onclick="upBiz(${i})">⬆️ Улучшить за ${fmt(c)}</button>`:'<span class="tag" style="flex:1;text-align:center">⭐ Максимальный уровень</span>'}<button class="btn sm ghost" onclick="sellBiz(${i})">Продать</button></div></div>`;}).join('');
   const av=BIZ.filter(d=>!p.biz.some(b=>b.id===d[0])).map(d=>{const lock=bizLocked(p,d);return `<div class="card ${lock?'lock':''}"><div class="row"><span class="big">${lock?'🔒':d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>${d[7]}</small></div></div>
    <p style="margin:8px 0;font-size:14px">Вложение: <b>${fmt(d[3])}</b> · прибыль ≈ ${fmt(d[4])}–${fmt(d[5])}/нед.<br><small>Окупится примерно за ${Math.ceil(d[3]/((d[4]+d[5])/2))} нед.</small></p>
    ${lock?`<span class="tag">${d[8]==='mill'?'👑 Откроется после первого миллиона':'Откроется на уровне '+d[6]}</span>`:`<button class="btn sm wide ${p.cash<d[3]?'dis':''}" onclick="buyBiz('${d[0]}')">Открыть бизнес</button>`}</div>`;}).join('');
   return `<h2>🏪 Мой бизнес</h2>
-  <div class="info">Бизнес приносит прибыль каждую неделю, но иногда бывают <b>убытки</b>. В капитале бизнес считается по цене продажи — ${BIZ_SELL*100}% от вложенного. Это и есть риск предпринимателя.</div>
+  ${p.fl.big?'<div class="info" style="background:#FFE3E5;color:#8A1C27">🏛️ Большой бизнес: каждую неделю — расходы компании (8% от вложений: аренда, охрана, бухгалтерия, управленцы), налог на прибыль 10%, взносы в Соцфонд и налог на имущество.</div>':''}<div class="info">Бизнес приносит прибыль каждую неделю, но иногда бывают <b>убытки</b>. В капитале бизнес считается по цене продажи — ${BIZ_SELL*100}% от вложенного. Это и есть риск предпринимателя.</div>
   ${own||''}${av?`<h3 class="sec">Можно открыть</h3>${av}`:''}`;
 }
 function vMe(p){
@@ -1008,7 +1141,7 @@ function vMe(p){
    <div class="stat"><b>${st.ch}</b><small>дел сделано</small></div>
    <div class="stat"><b>${st.resist}</b><small>отказов от лишнего</small></div>
    <div class="stat"><b>${st.imp}</b><small>импульсивных покупок</small></div>
-   <div class="stat"><b>${fmt(st.interest)}</b><small>процентов получено</small></div></div>
+   <div class="stat"><b>${fmt(st.interest)}</b><small>процентов получено</small></div>${st.taxes||st.fines?`<div class="stat"><b>${fmt(st.taxes||0)}</b><small>налогов уплачено</small></div><div class="stat"><b>${fmt(st.fines||0)}</b><small>штрафов</small></div>`:''}</div>
   <h3 class="sec">Достижения ${p.ach.length}/${ACH.length}</h3>
   <div class="grid3">${ACH.map(a=>`<div class="ach ${p.ach.includes(a[0])?'':'off'}"><span class="e">${a[1]}</span><b>${a[2]}</b>${a[3]}</div>`).join('')}</div>
   <h3 class="sec">📒 Журнал денег</h3>
@@ -1158,6 +1291,19 @@ const BOOK = [
   q:[['На что идут налоги?',['На школы, больницы, дороги','На игрушки для налоговиков','Никуда'],0,'Налоги — общие деньги на то, что нужно всем.'],
      ['Кто платит налоги?',['Люди и компании','Только дети','Никто'],0,'Налоги платят и работающие люди, и бизнесы.']]},
 
+ {id:'taxes2',e:'🏛️',c:'#5A4FCF',title:'Виды налогов, штрафы и санкции',b:[
+  {t:'p',x:'Налоги бывают <b>прямые</b> — их платят со своего дохода или имущества, и <b>косвенные</b> — они спрятаны в цене товаров, и их платит покупатель.'},
+  {t:'html',s:'Главные налоги в Кыргызстане. Подоходный налог: десять процентов с зарплаты. Налог на прибыль: десять процентов с прибыли компании. НДС: двенадцать процентов, он входит в цену товаров. Налог с продаж: небольшой процент с выручки. Налог на имущество и земельный налог: за дома, здания, машины и землю. Страховые взносы в Социальный фонд: на пенсии и пособия. Для маленького бизнеса есть простые режимы: единый налог и патент.',
+   x:'<table class="bktab"><tr><th>Налог</th><th>Кто и с чего платит</th></tr><tr><td>👩‍🏫 <b>Подоходный</b></td><td>работник — 10% с зарплаты</td></tr><tr><td>🏢 <b>На прибыль</b></td><td>компания — 10% с прибыли</td></tr><tr><td>🛒 <b>НДС</b></td><td>покупатель — 12% в цене товара</td></tr><tr><td>🧾 <b>С продаж</b></td><td>бизнес — небольшой % с выручки</td></tr><tr><td>🏠 <b>На имущество и землю</b></td><td>владелец зданий, машин, участков</td></tr><tr><td>👵 <b>Взносы в Соцфонд</b></td><td>на будущие пенсии и пособия</td></tr><tr><td>🧺 <b>Единый налог, патент</b></td><td>простые режимы для малого бизнеса</td></tr></table><p class="bkcap">Ставки указаны на 2026 год и иногда меняются</p>'},
+  {t:'ex',x:'Мама получает зарплату 40 000 сом. Работодатель удерживает подоходный налог 10% — 4 000 сом — и перечисляет его государству. На руки мама получает меньше, но эти деньги идут на школы и больницы.'},
+  {t:'p',x:'А что будет, если нарушать закон? Для этого есть наказания — <b>санкции</b>.'},
+  {t:'html',s:'Виды наказаний. Штраф: заплатить деньги за нарушение. Пени: долг растёт за каждый день просрочки. Приостановка: бизнес закрывают на время. Заморозка счёта: деньги есть, но тратить их нельзя. Лишение лицензии: заниматься делом запрещают. За самые тяжёлые нарушения, например за взятки, — уголовная ответственность.',
+   x:'<div class="bkflags"><p>⚖️ <b>Штраф</b> — заплатить деньги за нарушение</p><p>⏳ <b>Пени</b> — долг растёт за каждый день просрочки</p><p>⛔ <b>Приостановка</b> — бизнес закрывают на время</p><p>🧊 <b>Заморозка счёта</b> — деньги есть, а тратить нельзя</p><p>📄 <b>Лишение лицензии</b> — заниматься делом запрещают</p><p>🚔 <b>Уголовная ответственность</b> — за самые тяжёлые нарушения, например за взятки</p></div>'},
+  {t:'fact',x:'Слово «санкции» используют и между странами. <b>Международные санкции</b> — это ограничения, которые одни страны вводят против компаний или людей из других стран: запрет торговать, переводить деньги. Компании, которые помогают обходить санкции, тоже могут попасть под наказание.'},
+  {t:'p',x:'Почему честность выгоднее? Налоговая служба видит электронные счета-фактуры, кассовые чеки и банковские переводы. «Серые» схемы — продажи без чека, зарплаты «в конверте» — почти всегда раскрываются, и тогда приходится платить налог, штраф и пени.'},
+  {t:'key',x:'Заплатить налог вовремя — всегда дешевле, чем потом платить налог, штраф и пени вместе.'}],
+  q:[['Какой налог спрятан в цене товаров в магазине?',['НДС','Подоходный','Земельный'],0,'НДС входит в цену — его платит покупатель, а магазин передаёт государству.'],
+     ['Что такое пени?',['Плата за каждый день просрочки налога','Скидка для честных','Название налога на машины'],0,'Пени растут, пока долг не погашен.']]},
  {id:'inflation',e:'🎈',c:'#E76F51',title:'Инфляция — почему всё дорожает',b:[
   {t:'p',x:'<b>Инфляция</b> — это когда цены постепенно растут, и на ту же сумму можно купить меньше.'},
   {t:'ex',x:'Представь: сегодня мороженое стоит 50 сом, а через несколько лет — 70. Твои 100 сом в копилке так и остались 100, но мороженого на них теперь меньше.'},
@@ -1293,6 +1439,7 @@ function pCard(s,p){
   const L=(()=>{let i=0;LEVELS.forEach((l,k)=>{if(s.xp>=l[0])i=k;});return i;})();
   const flags=[];
   if(st.imp>=3)flags.push('🛍 Частые импульсивные покупки ('+st.imp+') — стоит обсудить разницу «нужно/хочу»');
+  if(s.st.fines)flags.push('⚖️ Штрафы в игре: '+fmt(s.st.fines)+' — повод обсудить, почему честность выгоднее');
   if(s.loan)flags.push('💸 Взял микрозайм в игре — хороший повод поговорить о кредитах');
   if(st.scam>0)flags.push('🛡️ Распознал мошенников '+st.scam+' раз(а)');
   if(tot>=5&&wp>=75)flags.push('🌟 Отличное финансовое мышление');
