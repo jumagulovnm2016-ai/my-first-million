@@ -985,24 +985,40 @@ const _S=['11c5','6f2a','7363','ba71'];
 function _h(str,seed){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
   h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}
 function normLogin(s){return String(s||'').trim().toLowerCase().replace(/\s+/g,'').replace(/ё/g,'е');}
-function codeFor(login){let x=normLogin(login)+'#'+_S.join('');for(let r=0;r<7;r++)x=String(_h(x,r*7919+1913));return String(Number(x)%1000000).padStart(6,'0');}
-function authOk(a){return !!(a&&a.login&&normLogin(a.login).length>=3&&String(a.code)===codeFor(a.login));}
+const DEV_AB='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function deviceId(){
+  let d=null;try{d=localStorage.getItem('mpm_device');}catch(e){}
+  if(!d){d=(S.device)||'';}
+  if(!/^[A-Z2-9]{8}$/.test(d||'')){d='';const r=new Uint32Array(8);(window.crypto||{}).getRandomValues?crypto.getRandomValues(r):r.forEach((_,i)=>r[i]=Math.random()*1e9);for(let i=0;i<8;i++)d+=DEV_AB[r[i]%DEV_AB.length];}
+  try{localStorage.setItem('mpm_device',d);}catch(e){}
+  if(S.device!==d){S.device=d;}
+  return d;
+}
+function devShow(d){return d.slice(0,4)+'-'+d.slice(4);}
+function normDev(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function codeFor(login,dev){let x=normLogin(login)+'#'+normDev(dev)+'#'+_S.join('');for(let r=0;r<7;r++)x=String(_h(x,r*7919+1913));return String(Number(x)%1000000).padStart(6,'0');}
+function authOk(a){return !!(a&&a.login&&normLogin(a.login).length>=3&&String(a.code)===codeFor(a.login,deviceId()));}
 function waLink(text){return 'https://wa.me/'+WA_PHONE+'?text='+encodeURIComponent(text);}
 function vLogin(){
+  const dv=devShow(deviceId());
   return `<div class="hero"><div class="logo">💰</div><h1>Мой первый миллион</h1><p>Игра о деньгах, решениях и мечтах — в кыргызских сомах</p></div>
+  <div class="card" style="text-align:center;background:#FFF1D6"><small>Код этого устройства</small><div style="font-size:34px;font-weight:800;letter-spacing:.12em;margin:4px 0" id="devc">${dv}</div>
+   <p class="mut" style="font-size:13px;margin-bottom:10px">Сообщите его при покупке — код доступа будет работать только на этом устройстве.</p>
+   <button class="btn sm ghost" onclick="copyDev()">📋 Скопировать</button></div>
   <div class="card"><h3 style="margin-bottom:12px">🔐 Вход</h3>
    <label class="mut" style="font-size:14px">Логин</label><input id="lg" class="inp" autocomplete="username" autocapitalize="none" placeholder="Например: aigerim2026" style="margin:6px 0 12px">
    <label class="mut" style="font-size:14px">Код доступа</label><input id="lc" class="inp" inputmode="numeric" maxlength="6" placeholder="6 цифр" style="margin:6px 0 16px;letter-spacing:.2em;font-size:20px" onkeyup="if(event.key==='Enter')doLogin()">
    <button class="btn wide" onclick="doLogin()">Войти</button>
-   <p class="mut" style="font-size:13px;margin-top:10px">Вход нужен один раз — дальше игра запомнит его на этом устройстве. Один код — для всех детей семьи.</p></div>
-  <div class="card" style="text-align:center"><b>Нет кода доступа?</b><p class="mut" style="font-size:14px;margin:6px 0 12px">Напишите нам в WhatsApp — пришлём логин и код.</p>
-   <a class="btn wide" style="background:#25A35A;text-decoration:none" href="${waLink('Здравствуйте! Хочу получить доступ к игре «Мой первый миллион».')}" target="_blank" rel="noopener">💬 WhatsApp ${WA_SHOW}</a></div>`;
+   <p class="mut" style="font-size:13px;margin-top:10px">Вход нужен один раз — дальше игра запомнит его. На этом устройстве может играть любое число детей семьи.</p></div>
+  <div class="card" style="text-align:center"><b>Нет кода доступа?</b><p class="mut" style="font-size:14px;margin:6px 0 12px">Напишите нам в WhatsApp — код устройства подставится в сообщение сам. Пришлём логин и код доступа.</p>
+   <a class="btn wide" style="background:#25A35A;text-decoration:none" href="${waLink('Здравствуйте! Хочу получить доступ к игре «Мой первый миллион». Код устройства: '+dv)}" target="_blank" rel="noopener">💬 WhatsApp ${WA_SHOW}</a></div>`;
 }
+function copyDev(){const t=devShow(deviceId());if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Скопировано: '+t),()=>toast('Код устройства: '+t));else toast('Код устройства: '+t);}
 function doLogin(){
   const l=($('lg').value||'').trim(),c=($('lc').value||'').replace(/\D/g,'');
   if(normLogin(l).length<3){toast('Введите логин');return;}
   if(c.length!==6){toast('Код — 6 цифр');return;}
-  if(!authOk({login:l,code:c})){toast('Логин или код не подходят. Проверьте и попробуйте ещё раз');return;}
+  if(!authOk({login:l,code:c})){toast('Код не подходит. Проверьте логин и что код выдан для устройства '+devShow(deviceId()));return;}
   S.auth={login:l,code:c,at:Date.now()};save();toast('Добро пожаловать! 🎉');VIEW='profiles';render();
 }
 function logout(){askConfirm('Выйти из игры на этом устройстве? Прогресс детей сохранится, но для входа снова понадобятся логин и код.',()=>{S.auth=null;PARENT_OK=false;S.cur=null;save();VIEW='profiles';render();});}
@@ -1512,7 +1528,7 @@ function vParent(){
   ${reps.length?reps.map(s=>pCard(s,null)).join(''):'<div class="card mut">Отчётов пока нет.</div>'}
   <div class="card"><b>📥 Добавить отчёт по коду</b><textarea id="imp" class="inp" placeholder="Вставьте код, начинающийся с МПМ:" style="margin:10px 0"></textarea><button class="btn wide" onclick="importReport()">Добавить</button></div>
   <button class="btn ghost wide" onclick="changePin()">🔑 Сменить PIN</button>
-  <p class="mut" style="text-align:center;font-size:13px;margin:14px 0 6px">Вход выполнен: <b>${esc(S.auth.login)}</b></p>
+  <p class="mut" style="text-align:center;font-size:13px;margin:14px 0 6px">Вход выполнен: <b>${esc(S.auth.login)}</b> · устройство ${devShow(deviceId())}</p>
   <button class="btn ghost wide" onclick="logout()">🚪 Выйти на этом устройстве</button>`;
 }
 function importReport(){
