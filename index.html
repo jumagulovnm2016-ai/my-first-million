@@ -156,7 +156,7 @@ const AVATARS = ['🦊','🐻','🐼','🦁','🐯','🐨','🐸','🦄','🐎',
 const LEVELS = [
   [0,'Новичок','🐣'],[80,'Копилочка','🐷'],[200,'Бережливый','🌱'],[400,'Экономист','📊'],
   [700,'Предприниматель','🛠'],[1100,'Бизнесмен','💼'],[1700,'Инвестор','📈'],
-  [2500,'Финансист','🏦'],[3500,'Магнат','🏆'],[5000,'Миллионер','👑']
+  [2500,'Финансист','🏦'],[3500,'Магнат','🏆'],[5000,'Миллионер','👑'],[7000,'Мультимиллионер','💎'],[10000,'Финансовый гений','🧠']
 ];
 
 const CHORES = [
@@ -196,8 +196,15 @@ const BIZ = [
   ['bike','🔧','Ремонт велосипедов',20000,1300,3200,3,'Чинишь велосипеды и самокаты всего района.'],
   ['shop','🏪','Мини-маркет у дома',80000,4000,9500,4,'Небольшой магазин продуктов для соседей.'],
   ['cafe','🍲','Кафе-ашкана',250000,12000,28000,5,'Плов, лагман и манты для всего города.'],
-  ['it','💻','IT-студия',600000,30000,70000,6,'Делаешь сайты и приложения для компаний.']
+  ['it','💻','IT-студия',600000,30000,70000,6,'Делаешь сайты и приложения для компаний.'],
+  // открываются после первого миллиона
+  ['tour','🏕️','Турбаза на Иссык-Куле',600000,110000,280000,1,'Юрты и домики для туристов на берегу озера.','mill'],
+  ['build','🏗️','Строительная компания',4000000,750000,1750000,1,'Строишь жилые дома и школы.','mill'],
+  ['chain','🛒','Сеть супермаркетов',10000000,1800000,4500000,1,'Магазины в Оше, Бишкеке и Джалал-Абаде.','mill'],
+  ['nuts','🌰','Завод орехов и сухофруктов',20000000,3700000,9000000,1,'Перерабатываешь орехи из Арсланбоба и отправляешь на экспорт.','mill']
 ];
+const MIL_GOAL=50000000;
+function bizLocked(p,d){return d[8]==='mill'?!p.fl.mill:lvl(p)+1<d[6];}
 const BIZ_MAXLV = 5;
 const BIZ_SELL = 0.6;
 const BIZ_UP = 0.5; // +50% прибыли за каждый уровень
@@ -282,7 +289,70 @@ const EVENTS = [
   {t:'Помочь делом: принести вещи',m:0,mood:8,w:true,xp:10,l:'Помочь можно не только деньгами.'},
   {t:'Не участвовать',m:0,w:null,l:'Решать тебе. Но доброе дело часто делает богаче душой.'}]}
 ];
+/* ---------- Ситуации после первого миллиона ---------- */
+function auditOf(p){return Math.max(50000,Math.round(Math.max(p.lastBizP,0)*0.15));}
+function insOf(p){return Math.max(20000,Math.round(p.biz.reduce((s,b)=>s+b.inv,0)*0.01));}
+function dmgOf(p){return Math.max(100000,Math.round(p.biz.reduce((s,b)=>s+b.inv,0)*0.05));}
+function staffOf(p){return Math.max(50000,Math.round(Math.max(p.lastBizP,0)*0.5));}
+EVENTS.push(
+ {id:'infl',rich:1,e:'📈',title:'Инфляция',text:'Цены в стране выросли примерно на 10%. Деньги, которые просто лежат наличными, теряют ценность.',cond:p=>p.cash>200000,ch:[
+  {t:p=>'Перевести половину наличных на счёт в банке ('+fmt(p.cash/2)+')',m:0,w:true,xp:20,fx:p=>{const a=Math.round(p.cash/2);p.cash-=a;p.bank+=a;p.fl.bank=1;addLog(p,'🏦 Защита от инфляции: на счёт '+fmt(a),0);return 'Деньги на счёте растут вместе с процентами.';},l:'Проценты по вкладу частично защищают от инфляции. Наличные «под подушкой» со временем тают.'},
+  {t:'Оставить всё наличными',m:0,w:false,fx:p=>{const a=Math.round(p.cash*0.05);p.cash-=a;addLog(p,'📉 Инфляция «съела» часть наличных',-a);return 'Инфляция «съела» '+fmt(a)+': на те же деньги теперь можно купить меньше.';},l:'Инфляция — тихий вор: сумма та же, а купить на неё можно меньше.'}]},
+ {id:'relloan',rich:1,e:'💍',title:'Родственник просит в долг',text:'Дальний родственник просит 300 000 сом на той и обещает вернуть «когда-нибудь».',cond:p=>p.cash>=300000,ch:[
+  {t:'Дать в долг 300 000 сом',m:-300000,w:false,fx:p=>{if(Math.random()<.4)p.pend.push({w:p.week+10,a:300000,t:'💍 Родственник вернул долг 300 000 сом'});else p.pend.push({w:p.week+10,a:0,t:'💍 Родственник так и не вернул 300 000 сом'});},l:'Большие суммы «до когда-нибудь» часто не возвращаются, а отношения портятся. Давай в долг только то, что готов подарить.'},
+  {t:'Подарить 50 000 сом на той',m:-50000,mood:10,w:true,xp:20,l:'Помогать родным — хорошо. Подарок по силам лучше долга, который испортит отношения.'},
+  {t:'Вежливо отказать',m:0,mood:-5,w:null,l:'Отказать родным трудно, но ты не обязан рисковать своими деньгами.'}]},
+ {id:'pyramid',rich:1,e:'🔺',title:'«Супер-инвестиция»',text:'Знакомый зовёт в «инвестиционный клуб»: «Вложи 1 000 000 сом — получай 30% каждый месяц! Приведи друга — получи бонус!»',cond:p=>p.cash>=1000000,ch:[
+  {t:'Вложить 1 000 000 сом',m:-1000000,w:false,fx:p=>{p.pend.push({w:p.week+4,a:300000,t:'🔺 «Клуб» выплатил 300 000 сом… пока всё хорошо?'});p.pend.push({w:p.week+8,a:0,t:'🔺 «Клуб» исчез вместе с деньгами. Это была финансовая пирамида'});},l:'Это финансовая пирамида: «доход» платят из денег новых участников, пока они не закончатся. Первые выплаты — приманка.'},
+  {t:'Отказаться: так не бывает',m:0,w:true,xp:40,flag:'nopyr',l:'Верно! 30% в месяц без риска не бывает, а «приведи друга» — главный признак пирамиды.'}]},
+ {id:'school',rich:1,e:'🏫️',title:'Спортзал для школы',text:'Школа в родном селе просит помочь с ремонтом спортзала. Нужно 800 000 сом.',ch:[
+  {t:'Оплатить весь ремонт (−800 000 сом)',m:-800000,mood:25,w:true,xp:60,flag:'patron',l:'Ты сделал большое доброе дело. Богатство — это ещё и возможность помогать другим.'},
+  {t:'Помочь частью (−200 000 сом)',m:-200000,mood:12,w:true,xp:30,flag:'patron',l:'Помогать можно столько, сколько позволяет бюджет — это разумная щедрость.'},
+  {t:'Отказаться',m:0,w:null,l:'Решать тебе. Но многие богатые люди считают помощь другим частью своего успеха.'}]},
+ {id:'lux',rich:1,e:'🏎️',title:'Дорогая машина',text:'Друзья советуют купить спорткар за 4 000 000 сом, «чтобы все видели, что ты богат».',ch:[
+  {t:'Купить спорткар (−4 000 000 сом)',m:-4000000,mood:15,w:false,imp:1,fx:p=>{p.pend.push({w:p.week+4,a:-300000,t:'🏎️ Страховка, налог и ремонт спорткара'});},l:'Дорогие вещи дорого стоят не только при покупке: страховка, ремонт, налоги. И каждый год они дешевеют.'},
+  {t:'Купить надёжную машину (−700 000 сом)',m:-700000,mood:8,w:true,xp:20,l:'Разумно: машина нужна для дела, а не чтобы впечатлять других.'},
+  {t:'Не покупать',m:0,w:true,xp:20,flag:'resist',l:'Богатые люди часто остаются богатыми именно потому, что не тратят деньги на показуху.'}]},
+ {id:'audit',rich:1,e:'🔍',title:'Налоговая проверка',text:p=>'Проверка нашла ошибку бухгалтера: нужно доплатить налог '+fmt(auditOf(p))+'.',cond:p=>p.biz.length>0,ch:[
+  {t:'Доплатить налог',m:0,w:true,xp:25,fx:p=>{payMust(p,auditOf(p),'🔍 Доплата налога');},l:'Ошибки бывают у всех. Честно их исправить — правильно и дешевле любых последствий.'},
+  {t:'Предложить проверяющему взятку',m:0,w:false,fx:p=>{const a=auditOf(p)*3;payMust(p,a,'⚖️ Налог и штраф за попытку дать взятку');moodAdd(p,-15);return 'Взятку не приняли. Пришлось заплатить налог и большой штраф: '+fmt(a)+'.';},l:'Взятка — преступление. Она вредит стране и почти всегда обходится дороже честного пути.'}]},
+ {id:'insure',rich:1,e:'🛡️',title:'Страховка бизнеса',text:p=>'Страховая компания предлагает застраховать все твои бизнесы на год за '+fmt(insOf(p))+'.',cond:p=>p.biz.length>0&&!(p.ins>p.week),ch:[
+  {t:p=>'Застраховать (−'+fmt(insOf(p))+')',m:p=>-insOf(p),w:true,xp:25,fx:p=>{p.ins=p.week+52;p.fl.insured=1;return 'Бизнесы застрахованы на 52 недели.';},l:'Страховка — плата за спокойствие: небольшой расход защищает от большой беды.'},
+  {t:'Отказаться',m:0,w:null,l:'Сэкономил сейчас. Но если случится беда, платить придётся самому.'}]},
+ {id:'sel',rich:1,e:'🌊',title:'Сель',text:p=>'Горный сель повредил здание одного из твоих бизнесов. Ремонт стоит '+fmt(dmgOf(p))+'.'+(p.ins>p.week?' К счастью, у тебя есть страховка!':''),cond:p=>p.biz.length>0,ch:[
+  {t:p=>p.ins>p.week?'Получить выплату по страховке':'Оплатить ремонт',m:0,w:null,fx:p=>{if(p.ins>p.week){addLog(p,'🛡️ Страховка оплатила ремонт после селя',0);return '🛡️ Страховка оплатила весь ремонт — '+fmt(dmgOf(p))+'!';}payMust(p,dmgOf(p),'🌊 Ремонт после селя');return 'Пришлось заплатить '+fmt(dmgOf(p))+'. Страховка спасла бы эти деньги.';},l:'Беды случаются неожиданно. Поэтому имущество страхуют и держат денежный резерв.'}]},
+ {id:'partner',rich:1,e:'🤝',title:'Предложение партнёра',text:'Бизнесмен из Бишкека предлагает вложить 2 000 000 сом в новый бизнес-центр. Обещает вернуть 3 000 000 сом через 20 недель.',cond:p=>p.cash>=2100000,ch:[
+  {t:'Вложить сразу, не проверяя (−2 000 000 сом)',m:-2000000,w:false,fx:p=>{const ok=Math.random()<.5;p.pend.push({w:p.week+20,a:ok?3000000:600000,t:ok?'🤝 Партнёр вернул 3 000 000 сом':'🤝 Проект провалился: вернулось только 600 000 сом'});},l:'Вкладывать большие деньги без проверки — азартная игра, а не инвестиция.'},
+  {t:'Нанять юриста, проверить и вложить (−2 100 000 сом)',m:-2100000,w:true,xp:30,fx:p=>{const ok=Math.random()<.85;p.pend.push({w:p.week+20,a:ok?3000000:1500000,t:ok?'🤝 Партнёр вернул 3 000 000 сом':'🤝 Проект задержался: вернулось только 1 500 000 сом'});return 'Юрист проверил документы — риск стал намного меньше.';},l:'Проверка партнёра и документов стоит денег, но сильно снижает риск.'},
+  {t:'Отказаться',m:0,w:null,l:'Не каждая возможность подходит тебе. Отказаться — тоже решение.'}]},
+ {id:'staff',rich:1,e:'👷',title:'Работники просят прибавку',text:'Твои работники просят поднять зарплату на 20%: цены выросли.',cond:p=>p.biz.length>=2&&!p.fl.staff,ch:[
+  {t:p=>'Поднять зарплату (−'+fmt(staffOf(p))+')',m:p=>-staffOf(p),w:true,xp:30,fx:p=>{p.fl.staff=1;p.mult=(p.mult||1)*1.1;return 'Работники стали стараться больше: прибыль бизнесов +10% навсегда.';},l:'Люди — главное богатство бизнеса. Довольные работники работают лучше.'},
+  {t:'Отказать',m:0,w:false,fx:p=>{p.boost=0.6;return 'Лучший работник ушёл к конкуренту. На следующей неделе прибыль упадёт.';},l:'Экономия на людях часто оборачивается потерями.'}]},
+ {id:'mba',rich:1,e:'🎓',title:'Учёба для руководителей',text:'Курс «Управление большим бизнесом» стоит 500 000 сом.',cond:p=>!p.fl.mba,ch:[
+  {t:'Пройти курс (−500 000 сом)',m:-500000,w:true,xp:60,fx:p=>{p.fl.mba=1;p.mult=(p.mult||1)*1.05;return 'Новые знания: прибыль бизнесов +5% навсегда.';},l:'Вложение в знания приносит самый долгий доход.'},
+  {t:'Не тратить время',m:0,w:null,l:'Знания устаревают. Даже очень богатые люди продолжают учиться.'}]},
+ {id:'party',rich:1,e:'🥂',title:'Новые «друзья»',text:'Люди, которые раньше тебя не замечали, теперь каждую неделю зовут на дорогие вечеринки по 100 000 сом.',ch:[
+  {t:'Ходить на все вечеринки (−400 000 сом за месяц)',m:-400000,mood:10,w:false,l:'Когда появляются деньги, появляются и «друзья», которым нужны твои деньги. Настоящие друзья были рядом и раньше.'},
+  {t:'Отдыхать со старыми друзьями (−20 000 сом)',m:-20000,mood:12,w:true,xp:20,l:'Деньги не должны менять тебя и твоих настоящих друзей.'}]},
+ {id:'usd',rich:1,e:'💱',title:'Курс доллара',text:'Курс доллара скачет. Знакомый советует перевести все сбережения в доллары.',cond:p=>p.bank>=1000000,ch:[
+  {t:'Перевести всё в доллары',m:0,w:false,fx:p=>{const a=Math.round(p.bank*(Math.random()<.5?0.08:-0.08));p.bank+=a;addLog(p,'💱 Ставка на курс валют',a);return a>=0?'Повезло: курс вырос, '+sgn(a)+'. Но это удача, а не расчёт.':'Курс упал: '+sgn(a)+'.';},l:'Перекладывать все деньги в одну валюту — ставка на удачу. Курс невозможно точно предсказать.'},
+  {t:'Перевести только часть',m:0,w:true,xp:30,fx:p=>{const a=Math.round(p.bank*(Math.random()<.5?0.02:-0.01));p.bank+=a;addLog(p,'💱 Часть сбережений в валюте',a);return 'Изменение: '+sgn(a)+'. Риск небольшой.';},l:'Диверсификация: деньги в разных валютах и вложениях не зависят от одного курса.'},
+  {t:'Ничего не менять',m:0,w:null,l:'Сбережения в сомах на вкладе — тоже нормальное решение.'}]},
+ {id:'talk',rich:1,e:'🎤',title:'Выступление в школе',text:'Учитель просит тебя рассказать классу, как ты заработал первый миллион.',ch:[
+  {t:'Рассказать честно — и про ошибки тоже',m:0,mood:12,w:true,xp:40,l:'Делиться опытом и ошибками — признак настоящего успеха.'},
+  {t:'Похвастаться и приукрасить',m:0,mood:5,w:false,l:'Хвастовство никому не помогает. Честный рассказ об ошибках полезнее.'},
+  {t:'Отказаться',m:0,w:null,l:'Иногда стоит поделиться опытом — это помогает и другим, и тебе.'}]},
+ {id:'crisis',rich:1,e:'📉',title:'Кризис в экономике',text:'В стране экономический спад: покупатели тратят меньше. Что будешь делать?',cond:p=>p.biz.length>=2,ch:[
+  {t:'Сократить лишние расходы и переждать',m:0,w:true,xp:25,fx:p=>{p.boost=0.85;return 'Прибыль немного снизится на неделю, но бизнес устоит.';},l:'В кризис важны резерв денег и спокойствие.'},
+  {t:'Продать все бизнесы в панике',m:0,w:false,fx:p=>{let s=0;p.biz.forEach(b=>s+=Math.round(b.inv*0.4));p.biz=[];earn(p,s,'📉 Бизнесы проданы в панике');return 'Ты продал всё дёшево — за '+fmt(s)+'. А через месяц кризис закончился…';},l:'Паника — плохой советчик. Кризисы проходят, а проданное за бесценок уже не вернуть.'},
+  {t:'Вложить в рекламу (−300 000 сом)',m:-300000,w:true,xp:25,fx:p=>{p.boost=1.3;return 'Пока конкуренты экономят, ты привлёк их клиентов.';},l:'Кризис бывает временем возможностей — если есть резерв.'}]},
+ {id:'heir',rich:1,e:'🎓',title:'Стипендия для студентов',text:'Университет в Оше предлагает учредить стипендию твоего имени для талантливых студентов: 400 000 сом.',ch:[
+  {t:'Учредить стипендию (−400 000 сом)',m:-400000,mood:20,w:true,xp:50,flag:'patron',l:'Вложение в образование других — одна из лучших форм благотворительности.'},
+  {t:'Не сейчас',m:0,w:null,l:'Можно вернуться к этому позже, когда будешь готов.'}]}
+);
 const EVM = Object.fromEntries(EVENTS.map(e=>[e.id,e]));
+function cm(c,p){return typeof c.m==='function'?c.m(p):c.m;}
+function ct(c,p){return typeof c.t==='function'?c.t(p):c.t;}
 function taxOf(p){return Math.max(30,Math.round(p.lastBizP*0.1));}
 
 /* ---------- Вопросы недели ---------- */
@@ -314,7 +384,13 @@ const QUIZ = [
  ['Акция: «Купи 2 — третий бесплатно». Тебе нужен один. Что разумно?',['Купить 3','Купить один','Купить 10'],1,'Акция выгодна, только если тебе действительно нужно столько.'],
  ['Что такое доход?',['Деньги, которые ты получаешь','Деньги, которые ты тратишь','Долг'],0,'Доход — то, что приходит: зарплата, карманные деньги, прибыль.'],
  ['Какой вклад обычно даёт больший процент?',['Который можно снять в любой день','Срочный — на долгий срок','Одинаково'],1,'За то, что деньги долго лежат в банке, он платит больше.'],
- ['Бизнес продал на 5 000 сом, а потратил 3 000. Какая прибыль?',['8 000 сом','2 000 сом','5 000 сом'],1,'5 000 − 3 000 = 2 000 сом прибыли.']
+ ['Бизнес продал на 5 000 сом, а потратил 3 000. Какая прибыль?',['8 000 сом','2 000 сом','5 000 сом'],1,'5 000 − 3 000 = 2 000 сом прибыли.'],
+ ['Что такое инфляция?',['Рост цен, из-за которого деньги покупают меньше','Скидка в магазине','Налог'],0,'При инфляции на ту же сумму можно купить меньше товаров.'],
+ ['Обещают 30% в месяц и бонус за каждого приведённого друга. Это…',['Надёжный вклад','Финансовая пирамида','Страховка'],1,'Пирамида платит старым участникам деньгами новых — и рано или поздно рушится.'],
+ ['Зачем страховать бизнес?',['Чтобы потратить деньги','Чтобы беда не разорила тебя','Так модно'],1,'Небольшой платёж защищает от большого ущерба.'],
+ ['Что такое диверсификация?',['Вложить всё в одно дело','Распределить деньги по разным вложениям','Отдать долг'],1,'Если одно вложение подведёт, другие подстрахуют.'],
+ ['Вклад 100 000 сом под 10% в год, проценты добавляются к вкладу. Сколько через 2 года?',['120 000 сом','121 000 сом','110 000 сом'],1,'Сложный процент: 110 000 через год, потом 10% уже от 110 000 — итого 121 000.'],
+ ['Бизнес стоил 1 000 000 сом и приносит 200 000 в год. За сколько лет он окупится?',['2 года','5 лет','10 лет'],1,'1 000 000 : 200 000 = 5 лет.']
 ];
 
 const ACH = [
@@ -328,7 +404,7 @@ const ACH = [
  ['biz1','🥤','Первый бизнес','Открой свой первый бизнес',p=>p.fl.biz],
  ['biz3','🏭','Своя империя','Владей тремя бизнесами',p=>p.biz.length>=3],
  ['bizmax','⭐','Мастер своего дела','Прокачай бизнес до 5 уровня',p=>p.biz.some(b=>b.lv>=BIZ_MAXLV)],
- ['scam','🛡','Не проведёшь!','Распознай мошенников',p=>p.st.scam>=1],
+ ['scam','🛡️','Не проведёшь!','Распознай мошенников',p=>p.st.scam>=1],
  ['resist','🧊','Холодная голова','Откажись от ненужной покупки 3 раза',p=>p.st.resist>=3],
  ['noloan','🚫','Без долгов','Откажись от микрозайма',p=>p.fl.noloan],
  ['honest','🤝','Честное сердце','Верни найденный кошелёк',p=>p.fl.honest],
@@ -337,7 +413,13 @@ const ACH = [
  ['real','🏠','Помощник семьи','Выполни задание от родителей',p=>p.st.real>0],
  ['k10','💰','10 тысяч','Капитал 10 000 сом',p=>nw(p)>=1e4],
  ['k100','💎','100 тысяч','Капитал 100 000 сом',p=>nw(p)>=1e5],
- ['m1','👑','Мой первый миллион','Капитал 1 000 000 сом',p=>nw(p)>=1e6]
+ ['m1','👑','Мой первый миллион','Капитал 1 000 000 сом',p=>nw(p)>=1e6],
+ ['nopyr','🔺','Не попался в пирамиду','Откажись от финансовой пирамиды',p=>p.fl.nopyr],
+ ['insured','🛡️','Под защитой','Застрахуй свои бизнесы',p=>p.fl.insured],
+ ['patron','🏫️','Меценат','Помоги школе или студентам',p=>p.fl.patron],
+ ['nuts','🌰','Промышленник','Открой завод орехов и сухофруктов',p=>p.biz.some(b=>b.id==='nuts')],
+ ['m10','💎','10 миллионов','Капитал 10 000 000 сом',p=>nw(p)>=1e7],
+ ['m50','🏔️','Вершина: 50 миллионов','Капитал 50 000 000 сом',p=>nw(p)>=MIL_GOAL]
 ];
 
 /* =================== ХРАНЕНИЕ =================== */
@@ -392,8 +474,9 @@ function payMust(p,a,t){
 
 /* =================== НЕДЕЛЯ =================== */
 function pickEvent(p){
-  let el=EVENTS.filter(e=>(!e.cond||e.cond(p))&&!p.recent.includes(e.id));
-  if(!el.length)el=EVENTS.filter(e=>!e.cond||e.cond(p));
+  const pool=EVENTS.filter(e=>!!e.rich===!!p.fl.mill&&(!e.cond||e.cond(p)));
+  let el=pool.filter(e=>!p.recent.slice(-Math.min(10,pool.length-3)).includes(e.id));
+  if(!el.length)el=pool;
   const e=pick(el);p.recent.push(e.id);if(p.recent.length>10)p.recent.shift();return e.id;
 }
 function pickQuiz(p){
@@ -425,7 +508,7 @@ function endWeek(){
     let bt=0;
     p.biz.forEach(b=>{const d=BIZM[b.id];let pr;
       if(Math.random()<0.1){pr=-Math.round(d[3]*0.03);b.bad=pick(BADS);}
-      else{pr=Math.round(rnd(d[4],d[5])*(1+BIZ_UP*(b.lv-1))*p.boost);b.bad=null;}
+      else{pr=Math.round(rnd(d[4],d[5])*(1+BIZ_UP*(b.lv-1))*p.boost*(p.mult||1));b.bad=null;}
       b.last=pr;b.total+=pr;b.weeks++;bt+=pr;
       R.push([d[1]+' '+d[2]+(b.bad?' — '+b.bad:''),pr]);});
     p.st.bizp+=bt;p.lastBizP=bt;
@@ -457,10 +540,11 @@ const BIZM=Object.fromEntries(BIZ.map(b=>[b[0],b]));
 function choose(i){
   const p=P(),e=EVM[p.ev.id],c=e.ch[i];
   if(p.ev.done)return;
-  if(c.m<0&&!c.must&&p.cash<-c.m){toast('Не хватает наличных 😕');return;}
+  const M=cm(c,p),label=ct(c,p);
+  if(M<0&&!c.must&&p.cash<-M){toast('Не хватает наличных 😕');return;}
   const msg=[];
-  if(c.m>0)earn(p,c.m,e.e+' '+e.title);
-  else if(c.m<0){if(c.must)payMust(p,-c.m,e.e+' '+e.title);else spend(p,-c.m,e.e+' '+e.title);}
+  if(M>0)earn(p,M,e.e+' '+e.title);
+  else if(M<0){if(c.must)payMust(p,-M,e.e+' '+e.title);else spend(p,-M,e.e+' '+e.title);}
   if(c.mood)moodAdd(p,c.mood);
   if(c.w===true)p.st.wise++;if(c.w===false)p.st.unwise++;
   if(c.imp)p.st.imp++;
@@ -469,7 +553,7 @@ function choose(i){
   if(c.flag)p.fl[c.flag]=1;
   addXp(p,(c.xp||0)+5);
   if(c.fx){const r=c.fx(p);if(r)msg.push(r);}
-  p.ev.done=true;p.ev.res={c:i,msg:msg.join(' ')};
+  p.ev.done=true;p.ev.res={c:i,t:label,msg:msg.join(' ')};
   sfx(c.w===true?'good':c.w===false?'bad':'coin');
   save();render();checkAch(p);
 }
@@ -550,7 +634,7 @@ function closeDep(id){
 }
 function buyBiz(id){
   const p=P(),d=BIZM[id];
-  if(lvl(p)+1<d[6]){toast('Нужен уровень '+d[6]);return;}
+  if(bizLocked(p,d)){toast(d[8]==='mill'?'Откроется после первого миллиона':'Нужен уровень '+d[6]);return;}
   if(p.cash<d[3]){toast('Не хватает наличных: нужно '+fmt(d[3]));return;}
   if(p.biz.some(b=>b.id===id)){toast('Этот бизнес у тебя уже есть — прокачивай его!');return;}
   spend(p,d[3],d[1]+' Открыт бизнес: '+d[2]);
@@ -574,18 +658,25 @@ function ptDone(tid){const p=P(),t=p.ptasks.find(x=>x.id===tid);t.status='done';
 
 /* =================== ДОСТИЖЕНИЯ =================== */
 function checkAch(p){
+  if(nw(p)>=1e6)p.fl.mill=1;
   const got=[];
   ACH.forEach(a=>{if(!p.ach.includes(a[0])&&a[4](p)){p.ach.push(a[0]);got.push(a);p.xp+=25;}});
   if(!got.length)return;
   save();
+  if(got.some(a=>a[0]==='m50')){summit(p);return;}
   if(got.some(a=>a[0]==='m1')){million(p);return;}
   sfx('win');got.forEach((a,k)=>setTimeout(()=>toast(a[1]+' Достижение: '+a[2]+' (+25 опыта)'),k*1800+200));
   render();
 }
-function levelUp(i){const l=LEVELS[i];sfx('win');modal(`<div class="celebrate"><span class="e">${l[2]}</span><h2>Новый уровень!</h2><p>Теперь ты — <b>${l[1]}</b> (уровень ${i+1}).</p>${BIZ.filter(b=>b[6]===i+1).map(b=>`<p class="lesson good">Открыт новый бизнес: ${b[1]} ${b[2]}</p>`).join('')}<button class="btn wide" style="margin-top:16px" onclick="closeModal()">Отлично!</button></div>`);render();}
+function levelUp(i){const l=LEVELS[i];sfx('win');modal(`<div class="celebrate"><span class="e">${l[2]}</span><h2>Новый уровень!</h2><p>Теперь ты — <b>${l[1]}</b> (уровень ${i+1}).</p>${BIZ.filter(b=>b[6]===i+1&&!b[8]).map(b=>`<p class="lesson good">Открыт новый бизнес: ${b[1]} ${b[2]}</p>`).join('')}<button class="btn wide" style="margin-top:16px" onclick="closeModal()">Отлично!</button></div>`);render();}
 function million(p){
   sfx('win');
-  modal(`<div class="celebrate"><span class="e">👑</span><h1>Мой первый миллион!</h1><p style="margin:10px 0">${esc(p.name)}, твой капитал — <b>${fmt(nw(p))}</b>!</p><p class="lesson good">Ты прошёл путь за ${p.week-1} недель. Разумных решений: ${wisePct(p.st)}%. Главное — не сами деньги, а умение ими управлять.</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Ура!</button></div>`);
+  modal(`<div class="celebrate"><span class="e">👑</span><h1>Мой первый миллион!</h1><p style="margin:10px 0">${esc(p.name)}, твой капитал — <b>${fmt(nw(p))}</b>!</p><p class="lesson good">Ты прошёл путь за ${p.week-1} недель. Разумных решений: ${wisePct(p.st)}%. Главное — не сами деньги, а умение ими управлять.</p><p class="lesson" style="margin-top:8px">🏔️ <b>Новая цель — 50 000 000 сом!</b> Открыты крупные бизнесы, а жизнь станет сложнее: инфляция, налоговые проверки, пирамиды, родственники и «новые друзья».</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Вперёд!</button></div>`);
+  render();
+}
+function summit(p){
+  sfx('win');
+  modal(`<div class="celebrate"><span class="e">🏔️</span><h1>50 миллионов!</h1><p style="margin:10px 0">${esc(p.name)}, ты на вершине! Капитал — <b>${fmt(nw(p))}</b> за ${p.week-1} недель.</p><p class="lesson good">Разумных решений: ${wisePct(p.st)}%. Ты прошёл путь от 1 000 сом до 50 миллионов — и научился отличать хорошие решения от рискованных.</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Ура!</button></div>`);
   render();
 }
 function wisePct(st){const t=st.wise+st.unwise;return t?Math.round(st.wise/t*100):0;}
@@ -780,13 +871,13 @@ function createP(){
 function vTop(p){
   const L=lvl(p),l=LEVELS[L],nx=LEVELS[L+1];
   const pr=nx?Math.round((p.xp-l[0])/(nx[0]-l[0])*100):100;
-  const n=nw(p),mp=Math.max(0,Math.min(100,n/1e6*100));
+  const n=nw(p),G=p.fl.mill?MIL_GOAL:1e6,mp=Math.max(0,Math.min(100,n/G*100));
   return `<div class="top">
    <button class="snd ${S.sound.music?'':'off'}" onclick="toggleMusic()" title="Музыка">${S.sound.music?'🎵':'🔇'}</button>
    <div class="row"><div class="av">${p.av}</div><div style="flex:1;min-width:0"><b style="font-size:18px">${esc(p.name)}</b><br><small>${l[2]} ${l[1]} · уровень ${L+1} · неделя ${p.week}</small></div></div>
    <div class="cap">${fmt(n)}</div><small>капитал</small>
    <div class="chips"><span class="chip">💵 ${fmt(p.cash)}</span><span class="chip">🏦 ${fmt(p.bank+depSum(p))}</span><span class="chip">🎯 ${fmt(goalsSum(p))}</span><span class="chip">🏪 ${p.biz.length}</span>${p.loan?`<span class="chip">💸 долг ${fmt(p.loan.left*p.loan.pay)}</span>`:''}</div>
-   <div class="goalm">До миллиона: ${mp<0.1?mp.toFixed(2):mp.toFixed(1)}%<div class="bar" style="margin-top:4px"><i style="width:${Math.max(1,mp)}%"></i></div></div>
+   <div class="goalm">${p.fl.mill?'🏔️ До 50 миллионов':'До миллиона'}: ${mp<0.1?mp.toFixed(2):mp.toFixed(1)}%<div class="bar" style="margin-top:4px"><i style="width:${Math.max(1,mp)}%"></i></div></div>
    <div class="goalm">Опыт: ${p.xp}${nx?' / '+nx[0]:''}<div class="bar" style="margin-top:4px"><i style="width:${pr}%"></i></div></div>
   </div>`;
 }
@@ -799,11 +890,11 @@ function vHome(p){
   let ev;
   if(!p.ev.done){
     ev=`<div class="card"><div class="evh"><span class="big">${e.e}</span><div><span class="tag">Ситуация недели</span><h3 style="margin-top:4px">${e.title}</h3></div></div><p>${txt}</p>
-    <div class="chs">${e.ch.map((c,i)=>{const dis=c.m<0&&!c.must&&p.cash<-c.m;return `<button class="ch ${dis?'dis':''}" onclick="choose(${i})">${c.t}${dis?' <small>— не хватает денег</small>':''}${c.must?' <small>· обязательный расход</small>':''}</button>`;}).join('')}</div></div>`;
+    <div class="chs">${e.ch.map((c,i)=>{const M=cm(c,p),dis=M<0&&!c.must&&p.cash<-M;return `<button class="ch ${dis?'dis':''}" onclick="choose(${i})">${ct(c,p)}${dis?' <small>— не хватает денег</small>':''}${c.must?' <small>· обязательный расход</small>':''}</button>`;}).join('')}</div></div>`;
   }else{
     const c=e.ch[p.ev.res.c];
     ev=`<div class="card"><div class="evh"><span class="big">${e.e}</span><div><span class="tag">Ситуация недели ✔</span><h3 style="margin-top:4px">${e.title}</h3></div></div>
-    <p>Твой выбор: <b>${c.t}</b></p>${p.ev.res.msg?`<p style="margin-top:6px">${p.ev.res.msg}</p>`:''}
+    <p>Твой выбор: <b>${p.ev.res.t||ct(c,p)}</b></p>${p.ev.res.msg?`<p style="margin-top:6px">${p.ev.res.msg}</p>`:''}
     ${c.w===true?'<p class="verdict ok">✅ Разумное решение!</p>':c.w===false?'<p class="verdict no">🤔 Можно было лучше</p>':''}
     <div class="lesson ${c.w===true?'good':c.w===false?'bad':''}">💡 ${c.l}</div></div>`;
   }
@@ -874,9 +965,9 @@ function vBiz(p){
   const own=p.biz.map((b,i)=>{const d=BIZM[b.id];const c=upCost(b);return `<div class="card pk"><div class="row"><span class="big">${d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>Уровень ${b.lv}/${BIZ_MAXLV} · ${b.weeks} нед. · прибыль за всё время <span class="${b.total>=0?'pos':'neg'}">${sgn(b.total)}</span></small></div></div>
    <p style="margin:8px 0;font-size:14px">Прошлая неделя: <b class="${b.last>=0?'pos':'neg'}">${sgn(b.last)}</b>${b.bad?` <small>(${b.bad})</small>`:''}<br><small>Ожидаемо: ${fmt(d[4]*(1+BIZ_UP*(b.lv-1)))} – ${fmt(d[5]*(1+BIZ_UP*(b.lv-1)))} в неделю</small></p>
    <div class="row">${b.lv<BIZ_MAXLV?`<button class="btn sm org ${p.cash<c?'dis':''}" style="flex:1" onclick="upBiz(${i})">⬆️ Улучшить за ${fmt(c)}</button>`:'<span class="tag" style="flex:1;text-align:center">⭐ Максимальный уровень</span>'}<button class="btn sm ghost" onclick="sellBiz(${i})">Продать</button></div></div>`;}).join('');
-  const av=BIZ.filter(d=>!p.biz.some(b=>b.id===d[0])).map(d=>{const lock=L<d[6];return `<div class="card ${lock?'lock':''}"><div class="row"><span class="big">${lock?'🔒':d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>${d[7]}</small></div></div>
+  const av=BIZ.filter(d=>!p.biz.some(b=>b.id===d[0])).map(d=>{const lock=bizLocked(p,d);return `<div class="card ${lock?'lock':''}"><div class="row"><span class="big">${lock?'🔒':d[1]}</span><div style="flex:1"><b>${d[2]}</b><br><small>${d[7]}</small></div></div>
    <p style="margin:8px 0;font-size:14px">Вложение: <b>${fmt(d[3])}</b> · прибыль ≈ ${fmt(d[4])}–${fmt(d[5])}/нед.<br><small>Окупится примерно за ${Math.ceil(d[3]/((d[4]+d[5])/2))} нед.</small></p>
-   ${lock?`<span class="tag">Откроется на уровне ${d[6]}</span>`:`<button class="btn sm wide ${p.cash<d[3]?'dis':''}" onclick="buyBiz('${d[0]}')">Открыть бизнес</button>`}</div>`;}).join('');
+   ${lock?`<span class="tag">${d[8]==='mill'?'👑 Откроется после первого миллиона':'Откроется на уровне '+d[6]}</span>`:`<button class="btn sm wide ${p.cash<d[3]?'dis':''}" onclick="buyBiz('${d[0]}')">Открыть бизнес</button>`}</div>`;}).join('');
   return `<h2>🏪 Мой бизнес</h2>
   <div class="info">Бизнес приносит прибыль каждую неделю, но иногда бывают <b>убытки</b>. В капитале бизнес считается по цене продажи — ${BIZ_SELL*100}% от вложенного. Это и есть риск предпринимателя.</div>
   ${own||''}${av?`<h3 class="sec">Можно открыть</h3>${av}`:''}`;
@@ -941,7 +1032,7 @@ function pCard(s,p){
   const flags=[];
   if(st.imp>=3)flags.push('🛍 Частые импульсивные покупки ('+st.imp+') — стоит обсудить разницу «нужно/хочу»');
   if(s.loan)flags.push('💸 Взял микрозайм в игре — хороший повод поговорить о кредитах');
-  if(st.scam>0)flags.push('🛡 Распознал мошенников '+st.scam+' раз(а)');
+  if(st.scam>0)flags.push('🛡️ Распознал мошенников '+st.scam+' раз(а)');
   if(tot>=5&&wp>=75)flags.push('🌟 Отличное финансовое мышление');
   return `<div class="card"><div class="row"><span class="big">${s.a}</span><div style="flex:1"><b style="font-size:18px">${esc(s.n)}</b><br><small>${LEVELS[L][2]} ${LEVELS[L][1]} · неделя ${s.w} · ${p?'на этом устройстве':'отчёт от '+new Date(s.t).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small></div></div>
   <div class="cap" style="font-size:24px;margin:10px 0 0">${fmt(s.nw)}</div><small>капитал · наличные ${fmt(s.cash)} · банк ${fmt(s.bank)}</small>
