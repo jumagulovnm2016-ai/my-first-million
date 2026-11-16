@@ -553,6 +553,9 @@ const ACH = [
  ['m10','💎','10 миллионов','Капитал 10 000 000 сом',p=>nw(p)>=1e7],
  ['m20','🏛️','Большой бизнес','Капитал 20 000 000 сом',p=>p.fl.big],
  ['clean','✨','Чистая репутация','Пройди комплексную проверку без нарушений',p=>p.fl.clean],
+ ['season2','🔁','Новый сезон','Начни второй сезон',p=>(p.seasons||[]).length>=1],
+ ['chal1','🎯','Испытатель','Пройди первое испытание',p=>chalStars(p)>=1],
+ ['chal3','🌟','Мастер испытаний','Получи 3 звезды во всех испытаниях',p=>CHAL.every(c=>((p.chalRes||{})[c.id]||{}).stars===3)],
  ['m50','🏔️','Вершина: 50 миллионов','Капитал 50 000 000 сом',p=>nw(p)>=MIL_GOAL]
 ];
 
@@ -609,7 +612,8 @@ function payMust(p,a,t){
 /* =================== НЕДЕЛЯ =================== */
 function pickEvent(p){
   const tier=p.fl.big&&Math.random()<0.85?'big':p.fl.mill?'rich':'base';
-  const pool=EVENTS.filter(e=>(e.big?'big':e.rich?'rich':'base')===tier&&(!e.cond||e.cond(p)));
+  const cp=p.chal&&CHM[p.chal.id].pool;
+  const pool=cp?EVENTS.filter(e=>cp.includes(e.id)&&(!e.cond||e.cond(p))):EVENTS.filter(e=>(e.big?'big':e.rich?'rich':'base')===tier&&(!e.cond||e.cond(p)));
   let el=pool.filter(e=>!p.recent.slice(-Math.min(10,pool.length-3)).includes(e.id));
   if(!el.length)el=pool;
   const e=pick(el);p.recent.push(e.id);if(p.recent.length>10)p.recent.shift();return e.id;
@@ -640,14 +644,15 @@ function endWeek(){
   }
   // бизнесы
   if(p.biz.length){
-    let bt=0;
+    let bt=0;const sm=satMult(p);
     p.biz.forEach(b=>{const d=BIZM[b.id];let pr;
       const su=isSusp(p,b.id);
       if(su){pr=0;b.bad='⛔ приостановлен: '+su.why;}
       else if(Math.random()<0.1){pr=-Math.round(d[3]*0.03);b.bad=pick(BADS);}
-      else{pr=Math.round(rnd(d[4],d[5])*(1+BIZ_UP*(b.lv-1))*p.boost*(p.mult||1));b.bad=null;}
+      else{pr=Math.round(rnd(d[4],d[5])*(1+BIZ_UP*(b.lv-1))*p.boost*(p.mult||1)*sm);b.bad=null;}
       b.last=pr;b.total+=pr;b.weeks++;bt+=pr;
       R.push([d[1]+' '+d[2]+(b.bad?' — '+b.bad:''),pr]);});
+    if(sm<1)R.push(['📉 Рынок насыщен: прибыль ×'+sm.toFixed(2)+' (чем больше капитал, тем труднее расти)',0]);
     p.st.bizp+=bt;p.lastBizP=bt;
     if(bt>=0)earn(p,bt,'🏪 Прибыль бизнеса');else payMust(p,-bt,'🏪 Убыток бизнеса');
     if(p.fl.big){
@@ -811,6 +816,8 @@ function ptDone(tid){const p=P(),t=p.ptasks.find(x=>x.id===tid);t.status='done';
 
 /* =================== ДОСТИЖЕНИЯ =================== */
 function checkAch(p){
+  if(p.chal){if(chalCheck(p))return;return;}
+  if(p.ach.includes('m50'))p.fl.top=1;
   if(nw(p)>=1e6)p.fl.mill=1;
   if(nw(p)>=BIG_GOAL)p.fl.big=1;
   const got=[];
@@ -825,16 +832,145 @@ function checkAch(p){
 }
 function levelUp(i){const l=LEVELS[i];sfx('win');modal(`<div class="celebrate"><span class="e">${l[2]}</span><h2>Новый уровень!</h2><p>Теперь ты — <b>${l[1]}</b> (уровень ${i+1}).</p>${BIZ.filter(b=>b[6]===i+1&&!b[8]).map(b=>`<p class="lesson good">Открыт новый бизнес: ${b[1]} ${b[2]}</p>`).join('')}<button class="btn wide" style="margin-top:16px" onclick="closeModal()">Отлично!</button></div>`);render();}
 function million(p){
-  sfx('win');
+  sfx('win');p.m1w=p.m1w||p.week-1;
   modal(`<div class="celebrate"><span class="e">👑</span><h1>Мой первый миллион!</h1><p style="margin:10px 0">${esc(p.name)}, твой капитал — <b>${fmt(nw(p))}</b>!</p><p class="lesson good">Ты прошёл путь за ${p.week-1} недель. Разумных решений: ${wisePct(p.st)}%. Главное — не сами деньги, а умение ими управлять.</p><p class="lesson" style="margin-top:8px">🏔️ <b>Новая цель — 50 000 000 сом!</b> Открыты крупные бизнесы, а жизнь станет сложнее: инфляция, налоговые проверки, пирамиды, родственники и «новые друзья».</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Вперёд!</button></div>`);
   render();
 }
+function wisePct(st){const t=st.wise+st.unwise;return t?Math.round(st.wise/t*100):0;}
+/* =================== СЕЗОНЫ И ФИНАНСОВЫЙ РЕЙТИНГ =================== */
+function rating(p){
+  const st=p.st,t=st.wise+st.unwise,w=t?st.wise/t:.5,q=st.qt?st.qc/st.qt:.5;
+  return Math.round(100*(0.55*w+0.25*q+0.2*(1-Math.min(1,(st.imp||0)/8))));
+}
+function rTitle(r){return r>=90?'🧠 Финансовый гений':r>=75?'🦉 Мудрый финансист':r>=60?'👍 Хороший старт':'🌱 Учусь';}
+function satMult(p){return p.fl&&p.fl.top?Math.min(1,Math.pow(MIL_GOAL/Math.max(nw(p),MIL_GOAL),1.2)):1;}
+function seasonNo(p){return (p.seasons||[]).length+1;}
+function bestSeason(p){const s=p.seasons||[];return s.length?s.reduce((a,b)=>b.rating>a.rating?b:a):null;}
+function seasonCard(p){
+  const r=rating(p),st=p.st,b=bestSeason(p);
+  return `<div class="card" style="text-align:left">
+   <div class="row between"><b>Финансовый рейтинг</b><b style="font-size:28px;color:var(--teal)">${r}</b></div>
+   <p style="margin:2px 0 10px">${rTitle(r)}</p>
+   <div class="rl"><span>Сезон</span><b>${seasonNo(p)}</b></div>
+   <div class="rl"><span>Недель до миллиона</span><b>${p.m1w||'—'}</b></div>
+   <div class="rl"><span>Недель до 50 миллионов</span><b>${p.m50w||'—'}</b></div>
+   <div class="rl"><span>Разумных решений</span><b>${wisePct(st)}%</b></div>
+   <div class="rl"><span>Верных ответов</span><b>${st.qt?Math.round(st.qc/st.qt*100):0}%</b></div>
+   <div class="rl"><span>Импульсивных покупок</span><b>${st.imp||0}</b></div>
+   <div class="rl"><span>Налогов / штрафов</span><b>${fmt(st.taxes||0)} / ${fmt(st.fines||0)}</b></div>
+   ${b?`<p class="mut" style="font-size:13px;margin-top:8px">Лучший прошлый сезон: №${b.n}, рейтинг ${b.rating}${b.m50w?', 50 млн за '+b.m50w+' нед.':''}</p>`:''}
+  </div>`;
+}
 function summit(p){
-  sfx('win');
-  modal(`<div class="celebrate"><span class="e">🏔️</span><h1>50 миллионов!</h1><p style="margin:10px 0">${esc(p.name)}, ты на вершине! Капитал — <b>${fmt(nw(p))}</b> за ${p.week-1} недель.</p><p class="lesson good">Разумных решений: ${wisePct(p.st)}%. Ты прошёл путь от 1 000 сом до 50 миллионов — и научился отличать хорошие решения от рискованных.</p><button class="btn wide sun" style="margin-top:16px" onclick="closeModal()">🎉 Ура!</button></div>`);
+  sfx('win');p.fl.top=1;p.m50w=p.m50w||p.week-1;save();
+  modal(`<div class="celebrate"><span class="e">🏔️</span><h1>Сезон пройден!</h1><p style="margin:10px 0">${esc(p.name)}, 50 миллионов за ${p.m50w} недель!</p></div>
+  ${seasonCard(p)}
+  <p class="lesson" style="margin-bottom:12px">Дальше рынок <b>насыщается</b>: чем больше капитал, тем меньше приносит каждый новый сом. Настоящий вызов теперь — <b>новый сезон</b>: пройди путь быстрее и с более высоким рейтингом. Достижения и книга сохранятся.</p>
+  <button class="btn wide sun" onclick="closeModal();askNewSeason()">🏁 Начать новый сезон</button>
+  <button class="btn wide ghost" style="margin-top:8px" onclick="closeModal()">Продолжить этот сезон</button>`);
   render();
 }
-function wisePct(st){const t=st.wise+st.unwise;return t?Math.round(st.wise/t*100):0;}
+function askNewSeason(){
+  const p=P();
+  askConfirm('Начать сезон '+(seasonNo(p)+1)+'? Деньги, бизнесы и цели начнутся заново с 1 000 сом. Достижения, книга, испытания и история сезонов сохранятся.',()=>newSeason());
+}
+function newSeason(){
+  const p=P();
+  const rec={n:seasonNo(p),weeks:p.week-1,nw:nw(p),rating:rating(p),wise:wisePct(p.st),quiz:p.st.qt?Math.round(p.st.qc/p.st.qt*100):0,m1w:p.m1w||null,m50w:p.m50w||null,taxes:p.st.taxes||0,fines:p.st.fines||0,t:Date.now()};
+  const q=newProfile(p.name,p.av);
+  q.id=p.id;q.ach=p.ach.slice();q.book=p.book;q.seasons=(p.seasons||[]).concat([rec]);q.chalRes=p.chalRes||{};
+  q.ptasks=p.ptasks;q.pocket=p.pocket;q.qseen=p.qseen||[];q.created=p.created;
+  S.profiles[p.id]=q;save();TAB='home';window.scrollTo(0,0);render();
+  modal(`<div class="celebrate"><span class="e">🏁</span><h2>Сезон ${seasonNo(q)}!</h2><p>Снова 1 000 сом. Рекорд прошлого сезона: рейтинг <b>${rec.rating}</b>${rec.m50w?', 50 млн за <b>'+rec.m50w+'</b> нед.':''}. Сможешь лучше?</p><button class="btn wide" style="margin-top:14px" onclick="closeModal()">Вперёд!</button></div>`);
+}
+
+/* =================== ИСПЫТАНИЯ =================== */
+const CHAL=[
+ {id:'scooter',e:'🛴',title:'Самокат за 15 недель',desc:'Накопи на самокат (6 000 сом) и купи его. Займы брать нельзя. Подсказка: маленький бизнес ускорит дело.',weeks:15,par:12,
+  setup:s=>{s.cash=1000;s.pocket=350;s.goals=[{id:'cg',e:'🛴',n:'Самокат',target:6000,saved:0,item:'scooter',done:false}];},
+  win:s=>s.goals.some(g=>g.item==='scooter'&&g.done)||s.inv.includes('scooter'),fail:s=>s.loan?'Ты взял заём — по условиям испытания это запрещено.':''},
+ {id:'debt',e:'💸',title:'Выбраться из долга',desc:'У тебя микрозайм: 6 платежей по 400 сом. Погаси его и накопи 1 500 сом. Новых займов не брать.',weeks:10,par:8,
+  setup:s=>{s.cash=300;s.pocket=300;s.loan={left:6,pay:400};},
+  win:s=>!s.loan&&s.cash+s.bank>=1500,fail:s=>s.fl.noloanFail?'Ты взял новый заём, пока гасил старый.':''},
+ {id:'biz',e:'🥤',title:'Свой бизнес с нуля',desc:'Начни с 0 сом, открой точку максыма и прокачай её до 2 уровня.',weeks:10,par:7,
+  setup:s=>{s.cash=0;s.pocket=250;},win:s=>s.biz.some(b=>b.lv>=2)},
+ {id:'save',e:'🏦',title:'10 000 на счёте',desc:'Собери 10 000 сом на банковском счёте и вкладах. Неожиданные расходы будут — держи запас.',weeks:20,par:16,
+  setup:s=>{s.cash=1000;s.pocket=500;},win:s=>s.bank+depSum(s)>=10000},
+ {id:'scam',e:'🦊',title:'Неделя мошенников',desc:'8 недель подряд тебя пытаются обмануть. Не потеряй деньги и не поддайся на уловки.',weeks:8,endAt:true,
+  pool:['scam1','scam2','loan','saletoy','skin','friend','wallet','lalafo'],
+  setup:s=>{s.cash=3000;s.pocket=300;},win:s=>s.st.unwise<=1&&s.cash+s.bank>=3000},
+ {id:'budget',e:'🛍️',title:'Без лишних покупок',desc:'8 недель соблазнов: скидки, кино, игры. Ни одной импульсивной покупки, и сохрани не меньше 3 000 сом. Нужные вещи покупать можно.',weeks:8,endAt:true,
+  pool:['saletoy','skin','kino','bday','bazaar','apples','backpack','issyk','gift'],
+  setup:s=>{s.cash=4000;s.pocket=300;},win:s=>(s.st.imp||0)===0&&s.cash+s.bank+goalsSum(s)>=3000},
+ {id:'crisis',e:'📉',title:'Переживи кризис',desc:'Ты владелец трёх бизнесов. 10 трудных недель: кризис, инфляция, курс доллара. Сохрани бизнесы и капитал.',weeks:10,endAt:true,
+  pool:['crisis','infl','usd','staff','sel','insure','party','relloan','rival'],
+  setup:s=>{s.fl.mill=1;s.cash=1500000;s.bank=1000000;s.biz=[{id:'shop',lv:3,inv:160000,total:0,last:0,weeks:0,bad:null},{id:'cafe',lv:2,inv:375000,total:0,last:0,weeks:0,bad:null},{id:'tour',lv:1,inv:600000,total:0,last:0,weeks:0,bad:null}];s.lastBizP=300000;},
+  win:s=>s.biz.length>=3&&nw(s)>=s.chal.start},
+ {id:'honest',e:'🏛️',title:'Честный бизнес',desc:'Большая компания, 10 недель проверок и соблазнов. Ни одного «серого» решения и никаких налоговых долгов в конце.',weeks:10,endAt:true,
+  pool:['nocheck','envelope','declar','peni','eco','sanit','fire','permit','bribe2','sanct','aml','lawsuit','strike','export'],
+  setup:s=>{s.fl.mill=1;s.fl.big=1;s.cash=8000000;s.bank=4000000;s.biz=[{id:'chain',lv:2,inv:15000000,total:0,last:0,weeks:0,bad:null},{id:'build',lv:2,inv:6000000,total:0,last:0,weeks:0,bad:null}];s.lastBizP=2000000;},
+  win:s=>!s.fl.grey&&!s.taxdebt&&s.st.unwise===0}
+];
+const CHM=Object.fromEntries(CHAL.map(c=>[c.id,c]));
+function chalStars(p){return Object.values(p.chalRes||{}).reduce((a,r)=>a+(r.stars||0),0);}
+function startChal(id){
+  const o=P(),c=CHM[id];
+  const s=newProfile(o.name,o.av);s.id='ch_'+o.id;s.chal={id,owner:o.id,start:0};
+  s.ach=ACH.map(a=>a[0]);s.xp=1100;s.log=[];s.st.earned=0;s.qseen=(o.qseen||[]).slice();
+  c.setup(s);s.chal.start=nw(s);s.hist=[nw(s)];
+  s.recent=[];startWeek(s);
+  S.profiles[s.id]=s;S.cur=s.id;save();TAB='home';window.scrollTo(0,0);render();
+  modal(`<div class="celebrate"><span class="e">${c.e}</span><h2>${c.title}</h2></div><p style="margin:8px 0">${c.desc}</p>
+   <div class="rl"><span>Срок</span><b>${c.weeks} недель</b></div><div class="rl"><span>Старт</span><b>${fmt(s.cash+s.bank)}</b></div>
+   <p class="lesson" style="margin:12px 0">⭐ — выполнить цель · ⭐⭐ — 80%+ разумных решений · ⭐⭐⭐ — ещё и ${c.par?'уложиться в '+c.par+' нед.':'без единой ошибки'}</p>
+   <button class="btn wide" onclick="closeModal()">Начать!</button>`);
+}
+function chalCheck(s){
+  if(!s||!s.chal)return false;
+  const c=CHM[s.chal.id],used=s.week-1;
+  if(c.id==='debt'&&s.loan&&s.loan.pay!==400)s.fl.noloanFail=1;
+  const f=c.fail&&c.fail(s);
+  if(f){chalEnd(s,0,f);return true;}
+  const reached=c.endAt?used>=c.weeks:false;
+  const ok=c.win(s);
+  if(c.endAt){if(!reached)return false;if(!ok){chalEnd(s,0,'Цель не выполнена за '+c.weeks+' недель.');return true;}}
+  else{if(!ok){if(used>=c.weeks){chalEnd(s,0,'Время вышло: '+c.weeks+' недель прошло.');return true;}return false;}}
+  const w=wisePct(s.st),tot=s.st.wise+s.st.unwise;
+  let st=1;if(!tot||w>=80)st=2;
+  if(st===2&&(c.par?used<=c.par:s.st.unwise===0))st=3;
+  chalEnd(s,st,'');return true;
+}
+function chalEnd(s,stars,why){
+  const c=CHM[s.chal.id],o=S.profiles[s.chal.owner];
+  const used=s.week-1,prev=(o.chalRes||{})[c.id]||{stars:0};
+  o.chalRes=o.chalRes||{};
+  if(stars>prev.stars||(stars===prev.stars&&stars>0&&(!prev.weeks||used<prev.weeks)))o.chalRes[c.id]={stars,weeks:used};
+  const newStars=Math.max(0,stars-(prev.stars||0));if(newStars)o.xp+=newStars*40;
+  delete S.profiles[s.id];S.cur=o.id;TAB='chal';save();
+  sfx(stars?'win':'bad');
+  modal(`<div class="celebrate"><span class="e">${stars?c.e:'😕'}</span><h2>${stars?'Испытание пройдено!':'Не получилось'}</h2>
+   <p style="font-size:40px;margin:6px 0">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</p>
+   <p>${stars?'Недель: <b>'+used+'</b> · разумных решений: <b>'+wisePct(s.st)+'%</b>':esc(why)}</p>
+   ${newStars?`<p class="lesson good" style="margin-top:10px">+${newStars*40} опыта в основной игре</p>`:''}
+   <div class="row" style="margin-top:16px"><button class="btn ghost" style="flex:1" onclick="closeModal();render()">К испытаниям</button><button class="btn" style="flex:1" onclick="closeModal();startChal('${c.id}')">Ещё раз</button></div></div>`);
+  render();checkAch(o);
+}
+function quitChal(){
+  const s=P();if(!s||!s.chal)return;
+  askConfirm('Выйти из испытания? Результат не засчитается.',()=>{const o=s.chal.owner;delete S.profiles[s.id];S.cur=o;TAB='chal';save();render();});
+}
+function vChal(p){
+  if(p.chal)return '';
+  return `<div class="row between" style="margin-bottom:6px"><h2 style="margin:0">🎯 Испытания</h2><button class="btn sm ghost" onclick="tab('home')">← Назад</button></div>
+  <div class="info">Короткие задания на 8–16 недель. Основная игра не меняется — это отдельная тренировка. Звёзды: ⭐ цель · ⭐⭐ 80%+ разумных решений · ⭐⭐⭐ без ошибок или быстрее всех. Всего звёзд: <b>${chalStars(p)} из ${CHAL.length*3}</b></div>
+  ${CHAL.map(c=>{const r=(p.chalRes||{})[c.id];return `<div class="card"><div class="row"><span class="big">${c.e}</span><div style="flex:1"><b>${c.title}</b><br><small>${c.weeks} недель${r&&r.weeks?' · лучший результат: '+r.weeks+' нед.':''}</small></div><span style="font-size:20px;white-space:nowrap">${'⭐'.repeat(r?r.stars:0)}${'☆'.repeat(3-(r?r.stars:0))}</span></div>
+   <p style="font-size:14px;margin:8px 0 10px">${c.desc}</p><button class="btn sm wide" onclick="startChal('${c.id}')">${r&&r.stars?'Пройти ещё раз':'Начать'}</button></div>`;}).join('')}`;
+}
+function chalBanner(p){
+  const c=CHM[p.chal.id],left=c.weeks-(p.week-1);
+  return `<div class="card" style="background:#1F2A44;color:#fff"><div class="row"><span class="big">${c.e}</span><div style="flex:1"><small style="color:#cfd6ea">Испытание · осталось недель: ${left}</small><br><b>${c.title}</b></div><button class="btn sm ghost" onclick="quitChal()">Выйти</button></div><p style="font-size:13px;margin-top:8px;color:#dfe5f5">${c.desc}</p></div>`;
+}
+
 
 /* =================== ОКНА =================== */
 let CB=null;
@@ -1053,8 +1189,9 @@ function render(){
   if(VIEW==='parent'){a.innerHTML=vParent();$('nav').innerHTML='';return;}
   if(VIEW==='book'){a.innerHTML=(BK===null?`<button class="btn sm ghost" style="margin-bottom:12px" onclick="go('profiles')">← На главную</button>`:'')+vBook(null);$('nav').innerHTML='';return;}
   const p=P();if(!p){VIEW='profiles';render();return;}
-  const T={home:vHome,work:vWork,shop:vShop,goals:vGoals,bank:vBank,biz:vBiz,book:vBook,me:vMe}[TAB];
-  a.innerHTML=vTop(p)+T(p);
+  if(TAB==='chal'&&p.chal)TAB='home';
+  const T={home:vHome,work:vWork,shop:vShop,goals:vGoals,bank:vBank,biz:vBiz,book:vBook,me:vMe,chal:vChal}[TAB]||vHome;
+  a.innerHTML=(p.chal?chalBanner(p):'')+vTop(p)+T(p);
   $('nav').innerHTML=vNav(p);
 }
 function go(v){stopSpeak();if(v!=='book')BK=null;VIEW=v;window.scrollTo(0,0);render();}
@@ -1098,10 +1235,10 @@ function vTop(p){
   const n=nw(p),G=p.fl.mill?MIL_GOAL:1e6,mp=Math.max(0,Math.min(100,n/G*100));
   return `<div class="top">
    <button class="snd ${S.sound.music?'':'off'}" onclick="toggleMusic()" title="Музыка">${S.sound.music?'🎵':'🔇'}</button>
-   <div class="row"><div class="av">${p.av}</div><div style="flex:1;min-width:0"><b style="font-size:18px">${esc(p.name)}</b><br><small>${l[2]} ${l[1]} · уровень ${L+1} · неделя ${p.week}</small></div></div>
+   <div class="row"><div class="av">${p.av}</div><div style="flex:1;min-width:0"><b style="font-size:18px">${esc(p.name)}</b><br><small>${l[2]} ${l[1]} · уровень ${L+1} · ${p.chal?'испытание':((p.seasons||[]).length?'сезон '+seasonNo(p)+' · ':'')+'неделя '+p.week}</small></div></div>
    <div class="cap">${fmt(n)}</div><small>капитал</small>
    <div class="chips"><span class="chip">💵 ${fmt(p.cash)}</span><span class="chip">🏦 ${fmt(p.bank+depSum(p))}</span><span class="chip">🎯 ${fmt(goalsSum(p))}</span><span class="chip">🏪 ${p.biz.length}</span>${frozenSum(p)?`<span class="chip">🧊 ${fmt(frozenSum(p))}</span>`:''}${p.taxdebt?`<span class="chip">🧾 долг ${fmt(p.taxdebt.a)}</span>`:''}${p.loan?`<span class="chip">💸 долг ${fmt(p.loan.left*p.loan.pay)}</span>`:''}</div>
-   <div class="goalm">${p.fl.mill?'🏔️ До 50 миллионов':'До миллиона'}: ${mp<0.1?mp.toFixed(2):mp.toFixed(1)}%<div class="bar" style="margin-top:4px"><i style="width:${Math.max(1,mp)}%"></i></div></div>
+   ${p.chal?'':p.fl.top?`<div class="goalm">🏁 Сезон ${seasonNo(p)} пройден · рейтинг ${rating(p)}</div>`:`<div class="goalm">${p.fl.mill?'🏔️ До 50 миллионов':'До миллиона'}: ${mp<0.1?mp.toFixed(2):mp.toFixed(1)}%<div class="bar" style="margin-top:4px"><i style="width:${Math.max(1,mp)}%"></i></div></div>`}
    <div class="goalm">Опыт: ${p.xp}${nx?' / '+nx[0]:''}<div class="bar" style="margin-top:4px"><i style="width:${pr}%"></i></div></div>
   </div>`;
 }
@@ -1123,11 +1260,14 @@ function vHome(p){
     <div class="lesson ${c.w===true?'good':c.w===false?'bad':''}">💡 ${c.l}</div></div>`;
   }
   const q=QUIZ[p.quiz.i],a=p.quiz.ans;
+  if(!p.quiz.ord||p.quiz.ord.length!==q[1].length){p.quiz.ord=q[1].map((_,k)=>k).sort(()=>Math.random()-.5);}
   const qz=`<div class="card"><span class="tag" style="background:#E1ECFA;color:#2C5A8C">🧠 Вопрос недели · +50 сом</span><h3 style="margin:8px 0 2px">${q[0]}</h3>
-  ${q[1].map((o,k)=>`<button class="qopt ${a!==null&&k===q[2]?'right':''} ${a===k&&k!==q[2]?'wrong':''}" ${a!==null?'disabled':''} onclick="answer(${k})">${o}</button>`).join('')}
+  ${p.quiz.ord.map(k=>`<button class="qopt ${a!==null&&k===q[2]?'right':''} ${a===k&&k!==q[2]?'wrong':''}" ${a!==null?'disabled':''} onclick="answer(${k})">${q[1][k]}</button>`).join('')}
   ${a!==null?`<p class="verdict ${a===q[2]?'ok':'no'}">${a===q[2]?'✅ Верно!':'❌ Неверно'}</p><div class="lesson">💡 ${q[3]}</div>`:''}</div>`;
   const mood=p.mood>=70?'😄':p.mood>=40?'🙂':p.mood>=25?'😐':'😟';
-  return `<div class="checks">
+  const extra=p.chal?'':`${p.fl.top?`<div class="card row between" style="background:#FFF1D6"><div><b>🏁 Сезон пройден!</b><br><small>Рейтинг ${rating(p)} · ${rTitle(rating(p))}</small></div><button class="btn sm sun" onclick="askNewSeason()">Новый сезон</button></div>`:''}
+   <button class="card row between" style="width:100%;text-align:left" onclick="tab('chal')"><span><b>🎯 Испытания</b><br><small>короткие задания на звёзды · ⭐ ${chalStars(p)} из ${CHAL.length*3}</small></span><span style="font-size:22px">›</span></button>`;
+  return `${extra}<div class="checks">
    <div class="check"><b>${p.ev.done?'✅':'🎲'}</b>Ситуация</div>
    <div class="check"><b>${p.quiz.ans!==null?'✅':'🧠'}</b>Вопрос</div>
    <div class="check" onclick="tab('work')"><b>${p.chores.length}/${MAX_CHORES}</b>Дела</div>
@@ -1200,7 +1340,11 @@ function vBiz(p){
 }
 function vMe(p){
   const st=p.st;
+  const ss=(p.seasons||[]);
   return `<h2>🏅 Мои успехи</h2>
+  ${p.chal?'':seasonCard(p)}
+  ${p.chal||!p.fl.top?'':'<button class="btn wide sun" style="margin-bottom:14px" onclick="askNewSeason()">🏁 Начать новый сезон</button>'}
+  ${ss.length?`<h3 class="sec">История сезонов</h3><div class="card">${ss.slice().reverse().map(x=>`<div class="logl"><span>Сезон ${x.n} · ${x.weeks} нед. · ${fmt(x.nw)}</span><b>рейтинг ${x.rating}</b></div>`).join('')}</div>`:''}
   <div class="grid3" style="margin-bottom:14px">
    <div class="stat"><b>${wisePct(st)}%</b><small>разумных решений</small></div>
    <div class="stat"><b>${st.qt?Math.round(st.qc/st.qt*100):0}%</b><small>верных ответов</small></div>
@@ -1220,8 +1364,8 @@ function vMe(p){
    <div class="tgl" onclick="toggleSfx()"><span>🔔 Звуки действий</span><span class="sw ${S.sound.sfx?'on':''}"></span></div>
    <div style="padding-top:12px"><div class="row between"><span>🔊 Громкость</span><b id="volv">${S.sound.vol}%</b></div><input type="range" min="0" max="100" value="${S.sound.vol}" oninput="setVol(this.value)"></div>
   </div>
-  <button class="btn wide sun" onclick="showReport()">📤 Отправить отчёт родителям</button>
-  <button class="btn wide ghost" style="margin-top:10px" onclick="S.cur=null;save();go('profiles')">🔄 Сменить игрока</button>`;
+  ${p.chal?'<button class="btn wide ghost" onclick="quitChal()">🚪 Выйти из испытания</button>':`<button class="btn wide sun" onclick="showReport()">📤 Отправить отчёт родителям</button>
+  <button class="btn wide ghost" style="margin-top:10px" onclick="S.cur=null;save();go('profiles')">🔄 Сменить игрока</button>`}`;
 }
 
 /* =================== КНИГА О ДЕНЬГАХ =================== */
@@ -1474,7 +1618,7 @@ function vChapter(p){
 
 /* =================== ОТЧЁТ И РОДИТЕЛИ =================== */
 function summ(p){return {id:p.id,n:p.name,a:p.av,w:p.week,nw:nw(p),xp:p.xp,cash:p.cash,bank:p.bank+depSum(p),st:p.st,ach:p.ach.slice(),biz:p.biz.map(b=>[BIZM[b.id][1],BIZM[b.id][2],b.lv]),
-  goals:p.goals.map(g=>[g.e,g.n,g.saved,g.target,g.done?1:0]),bk:bookDone(p),h:p.hist.slice(-52),log:p.log.slice(0,12),loan:p.loan?p.loan.left*p.loan.pay:0,mood:p.mood,t:Date.now()};}
+  goals:p.goals.map(g=>[g.e,g.n,g.saved,g.target,g.done?1:0]),bk:bookDone(p),rt:rating(p),sn:seasonNo(p),cs:chalStars(p),ss:(p.seasons||[]).map(x=>[x.n,x.rating,x.weeks]),h:p.hist.slice(-52),log:p.log.slice(0,12),loan:p.loan?p.loan.left*p.loan.pay:0,mood:p.mood,t:Date.now()};}
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(s){return decodeURIComponent(escape(atob(s)));}
 function showReport(){
@@ -1519,7 +1663,8 @@ function pCard(s,p){
    <div class="stat"><b>${st.imp}</b><small>импульсивных покупок</small></div>
    <div class="stat"><b>${st.resist}</b><small>отказов от лишнего</small></div>
    <div class="stat"><b>${s.ach.length}/${ACH.length}</b><small>достижений</small></div></div>
-  <p style="font-size:14px">📖 Книга: прочитано глав <b>${s.bk||0} из ${BOOK.length}</b></p>
+  <p style="font-size:14px">📖 Книга: прочитано глав <b>${s.bk||0} из ${BOOK.length}</b>${s.rt!==undefined?` · 📊 Финансовый рейтинг: <b>${s.rt}</b> · сезон ${s.sn} · 🎯 звёзд в испытаниях: <b>${s.cs} из ${CHAL.length*3}</b>`:''}</p>
+  ${s.ss&&s.ss.length?`<p style="font-size:13px" class="mut">Прошлые сезоны: ${s.ss.map(x=>'№'+x[0]+' — рейтинг '+x[1]+' ('+x[2]+' нед.)').join(' · ')}</p>`:''}
   ${flags.map(f=>`<div class="lesson" style="margin-top:6px;font-size:14px">${f}</div>`).join('')}
   ${s.goals.length?`<p style="margin-top:10px"><b>Цели:</b> ${s.goals.map(g=>`${g[0]} ${esc(g[1])} ${g[4]?'✅':Math.round(g[2]/g[3]*100)+'%'}`).join(' · ')}</p>`:''}
   ${s.biz.length?`<p><b>Бизнесы:</b> ${s.biz.map(b=>`${b[0]} ${b[1]} (ур. ${b[2]})`).join(' · ')}</p>`:''}
